@@ -1,0 +1,13 @@
+{
+    "name": "smartschoolbus/backend-php",
+    "description": "PHP backend for Smart School Bus (migration from Python)",
+    "require": {
+        "firebase/php-jwt": "^6.5",
+        "vlucas/phpdotenv": "^5.6"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "src/"
+        }
+    }
+}
