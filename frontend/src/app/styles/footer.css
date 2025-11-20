@@ -1,0 +1,83 @@
+/* Footer Styles */
+
+.app-footer {
+    background: black;
+    color: white;
+    padding: 3rem 0 2rem;
+    margin-top: auto;
+    border-top: 4px solid rgba(255, 255, 255, 0.1);
+}
+
+.footer-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    justify-content: center;
+}
+
+@media (min-width: 768px) {
+    .footer-brand {
+        justify-content: flex-start;
+    }
+}
+
+.footer-logo {
+    font-size: 2rem;
+    line-height: 1;
+}
+
+.footer-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.footer-description {
+    font-size: 0.9rem;
+    opacity: 0.9;
+    color: rgba(255, 255, 255, 0.95);
+}
+
+.footer-links {
+    display: flex;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+@media (min-width: 768px) {
+    .footer-links {
+        justify-content: flex-end;
+    }
+}
+
+.footer-link {
+    color: white;
+    text-decoration: none;
+    font-size: 0.95rem;
+    font-weight: 500;
+    transition: opacity 0.3s ease;
+    opacity: 0.9;
+}
+
+.footer-link:hover {
+    color: white;
+    opacity: 1;
+    text-decoration: underline;
+}
+
+.footer-copyright {
+    font-size: 0.85rem;
+    opacity: 0.8;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+/* Make body flex container for sticky footer */
+body {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+main {
+    flex: 1;
+}

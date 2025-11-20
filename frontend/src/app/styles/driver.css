@@ -1,0 +1,26 @@
+/* Driver Page Styles */
+
+.driver-content {
+    flex: 1;
+    margin-left: 280px;
+    margin-top: 64px;
+    padding: 2rem;
+    background: #f8f9fa;
+    min-height: calc(100vh - 64px);
+    color: #000;
+}
+
+/* Responsive */
+@media (max-width: 991px) {
+    .driver-content {
+        margin-left: 0;
+        margin-top: 64px;
+        padding: 1.5rem;
+    }
+}
+
+@media (max-width: 767px) {
+    .driver-content {
+        padding: 1rem;
+    }
+}
