@@ -1,35 +1,4 @@
 
-// Lấy thông tin học sinh/phụ huynh/xe buýt động và các API khác cho phụ huynh
-export const parentAPI = {
-    getStudentInfo: (parentId) => fetchAPI(`/studentinfo.php?parent_id=${parentId}`),
-    getDashboard: () => fetchAPI('/parent/dashboard'),
-    getStudents: () => fetchAPI('/parent/students'),
-    getBusLocation: (busId) => fetchAPI(`/parent/bus/${busId}/location`),
-    getNotifications: () => fetchAPI('/parent/notifications'),
-};
-// Assignment APIs
-export const assignmentAPI = {
-    getAssignments: (routeId) => routeId
-        ? fetchAPI(`/assignments.php?route_id=${routeId}`)
-        : fetchAPI('/assignments.php'),
-    createAssignment: (data) => fetchAPI('/assignments.php', {
-        method: 'POST',
-        body: JSON.stringify(data),
-    }),
-    updateAssignment: (assignmentId, data) => fetchAPI('/assignments.php', {
-        method: 'PUT',
-        body: JSON.stringify({ AssignmentID: assignmentId, ...data }),
-    }),
-    deleteAssignment: (assignmentId) => fetchAPI('/assignments.php', {
-        method: 'DELETE',
-        body: JSON.stringify({ AssignmentID: assignmentId }),
-    }),
-};
-// API Configuration
-// Default to PHP backend on port 8000. Normalize NEXT_PUBLIC_API_URL so it
-// always includes the '/api' prefix (makes it resilient when env is set
-// to 'http://localhost:8000' or 'http://localhost:8000/api').
-
 // Sửa đường dẫn API cho đúng backend PHP thực tế
 let API_BASE_URL = 'http://localhost/SmartSchoolBus-main/backend/public/api';
 
@@ -61,6 +30,34 @@ const fetchAPI = async (endpoint, options = {}) => {
         console.error('API Error:', error);
         throw error;
     }
+};
+
+// Parent APIs
+export const parentAPI = {
+    getStudentInfo: (parentId) => fetchAPI(`/studentinfo.php?parent_id=${parentId}`),
+    getDashboard: () => fetchAPI('/parent/dashboard'),
+    getStudents: () => fetchAPI('/parent/students'),
+    getBusLocation: (busId) => fetchAPI(`/parent/bus/${busId}/location`),
+    getNotifications: () => fetchAPI('/parent/notifications'),
+};
+
+// Assignment APIs
+export const assignmentAPI = {
+    getAssignments: (routeId) => routeId
+        ? fetchAPI(`/assignments.php?route_id=${routeId}`)
+        : fetchAPI('/assignments.php'),
+    createAssignment: (data) => fetchAPI('/assignments.php', {
+        method: 'POST',
+        body: JSON.stringify(data),
+    }),
+    updateAssignment: (assignmentId, data) => fetchAPI('/assignments.php', {
+        method: 'PUT',
+        body: JSON.stringify({ AssignmentID: assignmentId, ...data }),
+    }),
+    deleteAssignment: (assignmentId) => fetchAPI('/assignments.php', {
+        method: 'DELETE',
+        body: JSON.stringify({ AssignmentID: assignmentId }),
+    }),
 };
 
 // Auth APIs
@@ -251,6 +248,7 @@ export const adminAPI = {
 export const driverAPI = {
     getDashboard: () => fetchAPI('/driver/dashboard'),
     getTrips: () => fetchAPI('/driver/trips'),
+    getTripStudents: (tripId) => fetchAPI(`/trip_students.php?trip_id=${tripId}`),
     startTrip: (tripId) => fetchAPI(`/driver/trips/${tripId}/start`, {
         method: 'POST',
     }),
@@ -261,8 +259,14 @@ export const driverAPI = {
         method: 'POST',
         body: JSON.stringify(location),
     }),
+    reportStudent: (tripId, studentId, status) => fetchAPI('/report_student.php', {
+        method: 'POST',
+        body: JSON.stringify({ TripID: tripId, StudentID: studentId, Status: status })
+    }),
+    sendAlert: (data) => fetchAPI('/driver/alert.php', {
+        method: 'POST',
+        body: JSON.stringify(data),
+    }),
 };
-
-
 
 export default fetchAPI;
