@@ -24,7 +24,7 @@ import { useState, useEffect } from 'react';
 
 import { Container, Card, Table, Button, Badge, Alert, Modal, Form } from 'react-bootstrap';
 import Sidebar from '../components/sidebar';
-import { adminAPI, assignmentAPI } from '../utils/api';
+import { adminAPI, assignmentAPI, driverAPI } from '../utils/api';
 import '../styles/driver.css';
 
 
@@ -140,6 +140,11 @@ export default function DriverPage() {
         setReportStatus('');
         try {
             await driverAPI.reportStudent(selectedTrip.TripID, studentId, status);
+            // Reload students to get updated status
+            const res = await driverAPI.getTripStudents(selectedTrip.TripID);
+            if (res.success) {
+                setStudents(res.data);
+            }
             setReportStatus('Đã cập nhật trạng thái!');
         } catch (err) {
             setReportStatus('Lỗi cập nhật!');
@@ -307,18 +312,27 @@ export default function DriverPage() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {students.map(stu => (
-                                    <tr key={stu.StudentID}>
-                                        <td>{stu.StudentID}</td>
-                                        <td>{stu.FullName}</td>
-                                        <td>{stu.PickupPoint}</td>
-                                        <td>{stu.Status}</td>
-                                        <td>
-                                            <Button size="sm" onClick={() => handleReportPickup(stu.StudentID, 'picked')}>Đã đón</Button>{' '}
-                                            <Button size="sm" variant="success" onClick={() => handleReportPickup(stu.StudentID, 'dropped')}>Đã trả</Button>
-                                        </td>
-                                    </tr>
-                                ))}
+                                {students.map(stu => {
+                                    let statusLabel = 'Chưa đón';
+                                    let statusVariant = 'secondary';
+                                    if (stu.Status === 'picked') { statusLabel = 'Đã đón'; statusVariant = 'primary'; }
+                                    else if (stu.Status === 'dropped') { statusLabel = 'Đã trả'; statusVariant = 'success'; }
+                                    else if (stu.Status === 'absent') { statusLabel = 'Vắng'; statusVariant = 'danger'; }
+
+                                    return (
+                                        <tr key={stu.StudentID}>
+                                            <td>{stu.StudentID}</td>
+                                            <td>{stu.FullName}</td>
+                                            <td>{stu.PickupPoint}</td>
+                                            <td><Badge bg={statusVariant}>{statusLabel}</Badge></td>
+                                            <td>
+                                                <Button size="sm" variant="outline-primary" className="me-1" onClick={() => handleReportPickup(stu.StudentID, 'picked')}>Đón</Button>
+                                                <Button size="sm" variant="outline-success" className="me-1" onClick={() => handleReportPickup(stu.StudentID, 'dropped')}>Trả</Button>
+                                                <Button size="sm" variant="outline-danger" onClick={() => handleReportPickup(stu.StudentID, 'absent')}>Vắng</Button>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
                             </tbody>
                         </Table>
                     )}
