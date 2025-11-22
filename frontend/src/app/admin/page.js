@@ -188,7 +188,8 @@ export default function AdminPage() {
                         FullName: studentForm.FullName,
                         ClassName: studentForm.ClassName,
                         SchoolName: studentForm.SchoolName,
-                        ParentID: parseInt(studentForm.ParentID)
+                        ParentID: parseInt(studentForm.ParentID),
+                        RouteID: studentForm.RouteID
                     };
                     await adminAPI.updateStudent(editingStudent.StudentID, updateData);
                     setEditingStudent(null);
@@ -198,12 +199,13 @@ export default function AdminPage() {
                         FullName: studentForm.FullName,
                         ClassName: studentForm.ClassName,
                         SchoolName: studentForm.SchoolName,
-                        ParentID: parseInt(studentForm.ParentID)
+                        ParentID: parseInt(studentForm.ParentID),
+                        RouteID: studentForm.RouteID
                     };
                     await adminAPI.createStudent(newStudentData);
                 }
                 await loadStudents(); // Reload students from backend
-                setStudentForm({ StudentID: '', FullName: '', ClassName: '', SchoolName: '', ParentID: '' });
+                setStudentForm({ StudentID: '', FullName: '', ClassName: '', SchoolName: '', ParentID: '', RouteID: '' });
                 setShowStudentModal(false);
             } catch (error) {
                 console.error('Failed to save student:', error);
@@ -222,7 +224,8 @@ export default function AdminPage() {
             FullName: student.FullName,
             ClassName: student.ClassName,
             SchoolName: student.SchoolName,
-            ParentID: student.ParentID
+            ParentID: student.ParentID,
+            RouteID: student.RouteID || ''
         });
         setShowStudentModal(true);
     };
@@ -612,6 +615,7 @@ export default function AdminPage() {
                                             <th>Mã HS</th>
                                             <th>Họ tên</th>
                                             <th>Lớp</th>
+                                            <th>Tuyến xe</th>
                                             <th>Địa chỉ</th>
                                             <th>Thao tác</th>
                                         </tr>
@@ -622,6 +626,7 @@ export default function AdminPage() {
                                                 <td>{student.StudentID}</td>
                                                 <td>{student.FullName}</td>
                                                 <td>{student.ClassName}</td>
+                                                <td>{student.RouteName || <span className="text-muted">Chưa gán</span>}</td>
                                                 <td>{student.SchoolName}</td>
                                                 <td>
                                                     <Button variant="link" size="sm" className="p-0 me-2 text-primary" onClick={() => handleEditStudent(student)}>
@@ -1059,6 +1064,18 @@ export default function AdminPage() {
                                     <option key={parent.ParentID} value={parent.ParentID}>
                                         {parent.FullName} - {parent.Phone}
                                     </option>
+                                ))}
+                            </Form.Select>
+                        </Form.Group>
+                        <Form.Group className="mb-3">
+                            <Form.Label>Tuyến xe (Tùy chọn)</Form.Label>
+                            <Form.Select
+                                value={studentForm.RouteID || ''}
+                                onChange={(e) => setStudentForm({ ...studentForm, RouteID: e.target.value })}
+                            >
+                                <option value="">-- Chưa gán tuyến --</option>
+                                {routes.map(r => (
+                                    <option key={r.RouteID} value={r.RouteID}>{r.RouteName}</option>
                                 ))}
                             </Form.Select>
                         </Form.Group>
