@@ -242,6 +242,13 @@ export const adminAPI = {
         method: 'DELETE',
         body: JSON.stringify({ id: userId }),
     }),
+
+    // Messages
+    getMessages: () => fetchAPI('/messages.php'),
+    sendMessage: (messageData) => fetchAPI('/messages.php', {
+        method: 'POST',
+        body: JSON.stringify(messageData),
+    }),
 };
 
 // Driver APIs
@@ -267,6 +274,12 @@ export const driverAPI = {
         method: 'POST',
         body: JSON.stringify(data),
     }),
+    getMessages: () => fetchAPI('/messages.php'),
+    sendMessage: (messageData) => fetchAPI('/messages.php', {
+        method: 'POST',
+        body: JSON.stringify(messageData),
+    }),
+    getAdmins: () => fetchAPI('/users.php?role=ADMIN'), // Need to ensure users.php supports this or create new endpoint
 };
 
 export default fetchAPI;
