@@ -9,11 +9,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit();
 }
 
+require_once __DIR__ . '/../../vendor/autoload.php';
 require_once __DIR__ . '/../../src/Database.php';
 require_once __DIR__ . '/../../src/Helpers.php';
+require_once __DIR__ . '/../../src/Auth.php';
 
 use App\Database;
 use App\Helpers;
+use App\Auth;
 
 $input = json_decode(file_get_contents('php://input'), true);
 
@@ -48,6 +51,55 @@ try {
         $stmt = $db->prepare('INSERT INTO tripstudents (TripID, StudentID, PickupStopID, DropoffStopID, Status, UpdatedTime) VALUES (?, ?, NULL, NULL, ?, NOW())');
         $stmt->execute([$tripId, $studentId, $status]);
     }
+
+    // --- Gửi thông báo cho phụ huynh ---
+    // Lấy thông tin học sinh và UserID của phụ huynh
+    $stmt = $db->prepare('SELECT s.FullName, p.UserID as ParentUserID 
+                          FROM students s 
+                          JOIN parents p ON s.ParentID = p.ParentID 
+                          WHERE s.StudentID = ?');
+    $stmt->execute([$studentId]);
+    $studentInfo = $stmt->fetch();
+
+    if ($studentInfo && $studentInfo['ParentUserID']) {
+        $studentName = $studentInfo['FullName'];
+        $parentUserId = $studentInfo['ParentUserID'];
+        
+        $statusText = '';
+        if ($status === 'picked') $statusText = 'đã được đón';
+        elseif ($status === 'dropped') $statusText = 'đã được trả';
+        elseif ($status === 'absent') $statusText = 'vắng mặt';
+        
+        if ($statusText) {
+            $content = "Học sinh $studentName $statusText ";
+            
+            // Xác định người gửi (Tài xế)
+            $fromUserId = 1; // Default to Admin
+            
+            // 1. Thử lấy từ token
+            $user = Auth::get_current_user_from_token();
+            if ($user) {
+                $fromUserId = $user['UserID'];
+            } else {
+                 // 2. Nếu không có token, thử lấy từ Trip -> Driver
+                 $stmtDriver = $db->prepare('
+                    SELECT d.UserID 
+                    FROM trips t 
+                    JOIN routeassignments ra ON t.AssignmentID = ra.AssignmentID 
+                    JOIN drivers d ON ra.DriverID = d.DriverID 
+                    WHERE t.TripID = ?
+                 ');
+                 $stmtDriver->execute([$tripId]);
+                 $driver = $stmtDriver->fetch();
+                 if ($driver) $fromUserId = $driver['UserID'];
+            }
+
+            // Insert tin nhắn thông báo
+            $stmtMsg = $db->prepare('INSERT INTO messages (FromUserID, ToUserID, Content, MessageType, SentAt) VALUES (?, ?, ?, "NOTIFICATION", NOW())');
+            $stmtMsg->execute([$fromUserId, $parentUserId, $content]);
+        }
+    }
+    // -----------------------------------
 
     Helpers::success_response(['message' => 'Cập nhật trạng thái thành công']);
 
