@@ -1,4 +1,3 @@
-
 'use client'
 // Chuyển đổi trạng thái
 function getStatusLabel(status) {
@@ -42,6 +41,22 @@ export default function DriverPage() {
     const [showAlertModal, setShowAlertModal] = useState(false);
     const [alertContent, setAlertContent] = useState('');
     const [reportStatus, setReportStatus] = useState('');
+
+    // Message states
+    const [messages, setMessages] = useState([]);
+
+    useEffect(() => {
+        if (activeTab === 'notifications') {
+            loadMessages();
+        }
+    }, [activeTab]);
+
+    const loadMessages = async () => {
+        try {
+            const res = await driverAPI.getMessages();
+            if (res.success) setMessages(res.data);
+        } catch (e) { console.error(e); }
+    };
 
 
     useEffect(() => {
@@ -277,6 +292,39 @@ export default function DriverPage() {
             <>
                 <h2>Gửi cảnh báo khẩn cấp</h2>
                 <Button variant="danger" onClick={() => setShowAlertModal(true)}>Gửi cảnh báo</Button>
+            </>
+        );
+    } else if (activeTab === 'notifications') {
+        content = (
+            <>
+                <div className="admin-header mb-4">
+                    <h1 className="admin-title">Thông báo</h1>
+                    <p className="admin-subtitle">Danh sách thông báo từ Quản trị viên</p>
+                </div>
+                <div className="row">
+                    <div className="col-md-12">
+                        <Card>
+                            <Card.Header>Danh sách thông báo</Card.Header>
+                            <Card.Body style={{ maxHeight: '600px', overflowY: 'auto' }}>
+                                {messages.length === 0 ? (
+                                    <p className="text-center text-muted my-4">Chưa có thông báo nào</p>
+                                ) : (
+                                    <div className="message-list">
+                                        {messages.map(msg => (
+                                            <div key={msg.MessageID} className="border-bottom p-3">
+                                                <div className="d-flex justify-content-between">
+                                                    <strong>{msg.FromName} <span className="text-muted" style={{ fontSize: '0.8em' }}>({msg.FromRole})</span></strong>
+                                                    <small className="text-muted">{new Date(msg.SentAt).toLocaleString()}</small>
+                                                </div>
+                                                <p className="mb-0 mt-2">{msg.Content}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </Card.Body>
+                        </Card>
+                    </div>
+                </div>
             </>
         );
     }
