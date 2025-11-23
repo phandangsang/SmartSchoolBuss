@@ -19,14 +19,10 @@ export default function ParentPage() {
     // Xe buýt của con
     const [busInfo, setBusInfo] = useState({});
 
-    // Lịch trình tuyến cố định
-    const [weeklySchedule, setWeeklySchedule] = useState([]);
-
     // Thông báo & cảnh báo
     const [notifications, setNotifications] = useState([]);
 
-    // Lịch sử di chuyển
-    const [tripHistory, setTripHistory] = useState([]);
+
 
     useEffect(() => {
         const userRole = localStorage.getItem('userRole');
@@ -213,103 +209,7 @@ export default function ParentPage() {
                     </>
                 );
 
-            case 'schedule':
-                return (
-                    <>
-                        <div className="parent-header mb-4">
-                            <h1 className="parent-title"> Lịch trình tuần</h1>
-                            <p className="parent-subtitle">Lịch trình tuyến cố định của {studentName}</p>
-                        </div>
 
-                        <Row>
-                            <Col lg={10}>
-                                <Card className="shadow-sm">
-                                    <Card.Body>
-                                        <h5 className="mb-3"></h5>
-                                        <div className="schedule-list">
-                                            {weeklySchedule.map((schedule, idx) => (
-                                                <div key={idx} className={`schedule-item ${schedule.status}`}>
-                                                    <div className="schedule-header">
-                                                        <h6 className="mb-0">
-                                                            {schedule.day}
-                                                            <Badge bg={getStatusBadge(schedule.status).variant} className="ms-2">
-                                                                {getStatusBadge(schedule.status).text}
-                                                            </Badge>
-                                                        </h6>
-                                                    </div>
-                                                    <div className="schedule-body mt-2">
-                                                        <Row>
-                                                            <Col md={6}>
-                                                                <p className="mb-1"><strong> Tuyến:</strong> {schedule.route}</p>
-                                                            </Col>
-                                                            <Col md={3}>
-                                                                <p className="mb-1"><strong> Đón:</strong> {schedule.pickupTime}</p>
-                                                            </Col>
-                                                            <Col md={3}>
-                                                                <p className="mb-1"><strong> Trả:</strong> {schedule.dropoffTime}</p>
-                                                            </Col>
-                                                        </Row>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </Card.Body>
-                                </Card>
-                            </Col>
-
-
-                        </Row>
-                    </>
-                );
-
-            case 'history':
-                return (
-                    <>
-                        <div className="parent-header mb-4">
-                            <h1 className="parent-title"> Lịch sử di chuyển</h1>
-                            <p className="parent-subtitle">Các chuyến xe đã hoàn thành của {studentName}</p>
-                        </div>
-
-                        <Card className="shadow-sm">
-                            <Card.Body>
-                                <div className="table-responsive">
-                                    <table className="table table-hover">
-                                        <thead>
-                                            <tr>
-                                                <th>Ngày</th>
-                                                <th>Tuyến</th>
-                                                <th>Giờ đón</th>
-                                                <th>Giờ trả</th>
-                                                <th>Trạng thái</th>
-                                                <th>Ghi chú</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {tripHistory.map((trip) => (
-                                                <tr key={trip.id}>
-                                                    <td>{trip.date}</td>
-                                                    <td>{trip.route}</td>
-                                                    <td>{trip.pickupTime}</td>
-                                                    <td>{trip.dropoffTime}</td>
-                                                    <td>
-                                                        <Badge bg={trip.onTime ? 'success' : 'warning'}>
-                                                            {trip.onTime ? ' Đúng giờ' : ' Trễ'}
-                                                        </Badge>
-                                                    </td>
-                                                    <td>
-                                                        {!trip.onTime && trip.delay && (
-                                                            <small className="text-muted">Trễ {trip.delay}</small>
-                                                        )}
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </Card.Body>
-                        </Card>
-                    </>
-                );
 
             case 'student':
                 return (
