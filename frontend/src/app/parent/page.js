@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Button, Badge, Alert, ListGroup, Modal } from 'react-bootstrap';
 import Sidebar from '../components/sidebar';
+import BusMap from '../components/BusMap';
 import '../styles/parent.css';
 import { parentAPI } from '../utils/api';
 
@@ -132,33 +133,17 @@ export default function ParentPage() {
                                                 <p className="text-muted mb-1">Tài xế: {busInfo.driverName} - {busInfo.driverPhone}</p>
                                                 <p className="text-muted mb-0">Tuyến: {busInfo.route}</p>
                                             </div>
-
                                         </div>
 
-                                        {/* Bản đồ giả lập */}
-                                        <div className="map-placeholder mb-3">
-                                            <div className="map-content">
-                                                <span style={{ fontSize: '3rem' }}>🗺️</span>
-                                                <p className="mt-2 mb-0"><strong>Vị trí hiện tại:</strong> {busInfo.currentLocation}</p>
-                                                <p className="text-muted">Khoảng cách: {busInfo.distance}</p>
-                                            </div>
-                                        </div>
-
-                                        <Alert variant="info" className="mb-0">
-                                            <div className="d-flex align-items-center">
-                                                <span style={{ fontSize: '2rem' }} className="me-3"></span>
-                                                <div>
-                                                    <strong>Dự kiến đến điểm đón: {busInfo.estimatedArrival}</strong>
-                                                    <br />
-                                                    <small>Giờ lên lịch: {busInfo.scheduledTime}</small>
-                                                </div>
-                                            </div>
-                                        </Alert>
+                                        {/* Google Maps */}
+                                        <BusMap
+                                            busId={busInfo.busNumber ? busInfo.busNumber.replace('Xe ', '') : null}
+                                            busInfo={busInfo}
+                                            studentPickupLocation={null}
+                                        />
                                     </Card.Body>
                                 </Card>
                             </Col>
-
-
                         </Row>
                     </>
                 );

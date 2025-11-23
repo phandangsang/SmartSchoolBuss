@@ -40,6 +40,7 @@ export const parentAPI = {
     getBusLocation: (busId) => fetchAPI(`/parent/bus/${busId}/location`),
     getNotifications: () => fetchAPI('/parent/notifications'),
     getMessages: () => fetchAPI('/messages.php'),
+    getBusLocation: (busId) => fetchAPI(`/bus_location.php?bus_id=${busId}`),
 };
 
 // Assignment APIs
@@ -281,6 +282,11 @@ export const driverAPI = {
         body: JSON.stringify(messageData),
     }),
     getAdmins: () => fetchAPI('/users.php?role=ADMIN'), // Need to ensure users.php supports this or create new endpoint
+    updateLocation: (locationData) => fetchAPI('/bus_location.php', {
+        method: 'POST',
+        body: JSON.stringify(locationData),
+    }),
+    getBusLocation: (busId) => fetchAPI(`/bus_location.php?bus_id=${busId}`),
 };
 
 export default fetchAPI;

@@ -198,8 +198,8 @@ export default function DriverPage() {
                             <th>Trạng thái</th>
                             <th>Học sinh</th>
                             <th>Báo cáo</th>
-                        </tr>
-                    </thead>
+                        </tr >
+                    </thead >
                     <tbody>
                         {trips.map((trip, idx) => (
                             <tr key={trip.TripID}>
@@ -224,7 +224,7 @@ export default function DriverPage() {
                             </tr>
                         ))}
                     </tbody>
-                </Table>
+                </Table >
             </>
         );
     } else if (activeTab === 'students') {
@@ -240,7 +240,7 @@ export default function DriverPage() {
                             <th>Giờ xuất phát</th>
                             <th>Học sinh</th>
                         </tr>
-                    </thead>
+                    </thead >
                     <tbody>
                         {trips.map(trip => (
                             <tr key={trip.TripID}>
@@ -255,7 +255,7 @@ export default function DriverPage() {
                             </tr>
                         ))}
                     </tbody>
-                </Table>
+                </Table >
             </>
         );
     } else if (activeTab === 'routes') {
@@ -284,7 +284,7 @@ export default function DriverPage() {
                             );
                         })}
                     </tbody>
-                </Table>
+                </Table >
             </>
         );
     } else if (activeTab === 'alerts') {
