@@ -65,6 +65,10 @@ export default function AdminPage() {
     const [editingRoute, setEditingRoute] = useState(null);
     const [editingSchedule, setEditingSchedule] = useState(null);
 
+    // Message state
+    const [messages, setMessages] = useState([]);
+    const [messageForm, setMessageForm] = useState({ ToUserID: '', Content: '', MessageType: 'TEXT' });
+
     // Kiểm tra đăng nhập và load data
     useEffect(() => {
         const userRole = localStorage.getItem('userRole');
@@ -80,6 +84,12 @@ export default function AdminPage() {
             window.location.href = '/login';
         }
     }, []);
+
+    useEffect(() => {
+        if (activeTab === 'contact') {
+            loadMessages();
+        }
+    }, [activeTab]);
 
     // Load routes và assignments, sau đó map assignment vào routes
     const loadRoutesAndAssignments = async () => {
@@ -168,6 +178,37 @@ export default function AdminPage() {
             }
         } catch (error) {
             console.error('Failed to load routes:', error);
+        }
+    };
+
+    // Load messages
+    const loadMessages = async () => {
+        try {
+            const response = await adminAPI.getMessages();
+            if (response.success) {
+                setMessages(response.data);
+            }
+        } catch (error) {
+            console.error('Failed to load messages:', error);
+        }
+    };
+
+    const handleSendMessage = async () => {
+        if (messageForm.ToUserID && messageForm.Content) {
+            try {
+                setLoading(true);
+                await adminAPI.sendMessage(messageForm);
+                setMessageForm({ ...messageForm, Content: '' }); // Clear content but keep recipient
+                await loadMessages();
+                alert('Gửi tin nhắn thành công!');
+            } catch (error) {
+                console.error('Failed to send message:', error);
+                alert('Lỗi gửi tin nhắn');
+            } finally {
+                setLoading(false);
+            }
+        } else {
+            alert('Vui lòng chọn người nhận và nhập nội dung');
         }
     };
 
@@ -985,13 +1026,77 @@ export default function AdminPage() {
                     </>
                 );
 
-            case 'messages':
+            case 'contact':
                 return (
                     <>
-                        <div className="admin-header mb-4"></div>
-                        <h1 className="admin-title">Tin nhắn </h1>
-                        <p className="admin-subtitle">Quản lý và phản hồi tin nhắn </p>
-                        <div />
+                        <div className="admin-header mb-4">
+                            <h1 className="admin-title">Liên hệ</h1>
+                            <p className="admin-subtitle">Gửi tin nhắn cho tài xế và phụ huynh</p>
+                        </div>
+                        <Row>
+                            <Col md={4}>
+                                <Card className="mb-4">
+                                    <Card.Header>Gửi tin nhắn mới</Card.Header>
+                                    <Card.Body>
+                                        <Form>
+                                            <Form.Group className="mb-3">
+                                                <Form.Label>Người nhận</Form.Label>
+                                                <Form.Select
+                                                    value={messageForm.ToUserID}
+                                                    onChange={(e) => setMessageForm({ ...messageForm, ToUserID: e.target.value })}
+                                                >
+                                                    <option value="">-- Chọn người nhận --</option>
+                                                    <optgroup label="Tài xế">
+                                                        {drivers.map(d => (
+                                                            <option key={`d-${d.UserID}`} value={d.UserID}>{d.FullName} (Tài xế)</option>
+                                                        ))}
+                                                    </optgroup>
+                                                    <optgroup label="Phụ huynh">
+                                                        {parents.map(p => (
+                                                            <option key={`p-${p.UserID}`} value={p.UserID}>{p.FullName} (Phụ huynh)</option>
+                                                        ))}
+                                                    </optgroup>
+                                                </Form.Select>
+                                            </Form.Group>
+                                            <Form.Group className="mb-3">
+                                                <Form.Label>Nội dung</Form.Label>
+                                                <Form.Control
+                                                    as="textarea"
+                                                    rows={4}
+                                                    value={messageForm.Content}
+                                                    onChange={(e) => setMessageForm({ ...messageForm, Content: e.target.value })}
+                                                />
+                                            </Form.Group>
+                                            <Button variant="primary" onClick={handleSendMessage} disabled={loading}>
+                                                {loading ? 'Đang gửi...' : 'Gửi tin nhắn'}
+                                            </Button>
+                                        </Form>
+                                    </Card.Body>
+                                </Card>
+                            </Col>
+                            <Col md={8}>
+                                <Card>
+                                    <Card.Header>Lịch sử tin nhắn</Card.Header>
+                                    <Card.Body style={{ maxHeight: '600px', overflowY: 'auto' }}>
+                                        {messages.length === 0 ? (
+                                            <p className="text-center text-muted my-4">Chưa có tin nhắn nào</p>
+                                        ) : (
+                                            <div className="message-list">
+                                                {messages.map(msg => (
+                                                    <div key={msg.MessageID} className="border-bottom p-3">
+                                                        <div className="d-flex justify-content-between">
+                                                            <strong>{msg.FromName} <span className="text-muted" style={{ fontSize: '0.8em' }}>({msg.FromRole})</span> -&gt; {msg.ToName} <span className="text-muted" style={{ fontSize: '0.8em' }}>({msg.ToRole})</span></strong>
+                                                            <small className="text-muted">{new Date(msg.SentAt).toLocaleString()}</small>
+                                                        </div>
+                                                        <p className="mb-0 mt-2">{msg.Content}</p>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </Card.Body>
+                                </Card>
+                            </Col>
+                        </Row>
                     </>
                 );
 
