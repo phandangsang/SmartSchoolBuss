@@ -68,6 +68,30 @@ export default function ParentPage() {
         }
     }, []);
 
+    useEffect(() => {
+        if (activeTab === 'notifications') {
+            loadNotifications();
+        }
+    }, [activeTab]);
+
+    const loadNotifications = async () => {
+        try {
+            const res = await parentAPI.getMessages();
+            if (res.success) {
+                const formattedNotifications = res.data.map(msg => ({
+                    id: msg.MessageID,
+                    title: `Thông báo từ ${msg.FromName} (${msg.FromRole})`,
+                    message: msg.Content,
+                    time: new Date(msg.SentAt).toLocaleString(),
+                    read: false // Default to unread as DB doesn't track it yet
+                }));
+                setNotifications(formattedNotifications);
+            }
+        } catch (error) {
+            console.error("Failed to load notifications", error);
+        }
+    };
+
     const getStatusBadge = (status) => {
         const statusMap = {
             'on-route': { variant: 'primary' },
