@@ -23,8 +23,6 @@ export default function Sidebar({ activeTab, onTabChange, userRole = 'admin' }) 
         { id: 'student', label: 'Thông tin' },
         { id: 'tracking', label: 'Theo dõi xe buýt' },
         { id: 'notifications', label: 'Thông báo & Cảnh báo' },
-        { id: 'schedule', label: 'Lịch trình tuần' },
-        { id: 'history', label: 'Lịch sử di chuyển' },
     ];
 
     // Menu cho Driver (Tài xế)
