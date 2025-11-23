@@ -39,6 +39,7 @@ export const parentAPI = {
     getStudents: () => fetchAPI('/parent/students'),
     getBusLocation: (busId) => fetchAPI(`/parent/bus/${busId}/location`),
     getNotifications: () => fetchAPI('/parent/notifications'),
+    getMessages: () => fetchAPI('/messages.php'),
 };
 
 // Assignment APIs
