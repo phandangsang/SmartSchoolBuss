@@ -15,6 +15,7 @@ export default function Sidebar({ activeTab, onTabChange, userRole = 'admin' }) 
         { id: 'assignments', label: 'Phân công' },
         { id: 'schedule', label: 'Lịch trình' },
         { id: 'tracking', label: 'Theo dõi GPS' },
+        { id: 'contact', label: 'Liên hệ' },
     ];
 
     // Menu cho Parent (Phụ huynh)
