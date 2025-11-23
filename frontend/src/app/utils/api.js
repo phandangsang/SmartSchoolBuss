@@ -271,7 +271,7 @@ export const driverAPI = {
         method: 'POST',
         body: JSON.stringify({ TripID: tripId, StudentID: studentId, Status: status })
     }),
-    sendAlert: (data) => fetchAPI('/driver/alert.php', {
+    sendAlert: (data) => fetchAPI('/alert.php', {
         method: 'POST',
         body: JSON.stringify(data),
     }),
