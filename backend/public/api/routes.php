@@ -22,29 +22,52 @@ try {
     switch ($method) {
         case 'GET':
             if (isset($_GET['id'])) {
-                $stmt = $db->prepare("SELECT RouteID, RouteName, Description FROM routes WHERE RouteID = ?");
+                $stmt = $db->prepare("SELECT RouteID, RouteName, Description, 
+                    StartPointName, StartLatitude, StartLongitude,
+                    EndPointName, EndLatitude, EndLongitude 
+                    FROM routes WHERE RouteID = ?");
                 $stmt->execute([$_GET['id']]);
                 $route = $stmt->fetch();
                 echo json_encode(['success' => true, 'data' => $route]);
             } else {
-                $stmt = $db->query("SELECT RouteID, RouteName, Description FROM routes ORDER BY RouteID DESC");
+                $stmt = $db->query("SELECT RouteID, RouteName, Description,
+                    StartPointName, StartLatitude, StartLongitude,
+                    EndPointName, EndLatitude, EndLongitude 
+                    FROM routes ORDER BY RouteID DESC");
                 $routes = $stmt->fetchAll();
                 echo json_encode(['success' => true, 'data' => $routes]);
             }
             break;
 
         case 'POST':
-            // Nhận các trường RouteID, RouteName, Description từ frontend
+            // Nhận các trường từ frontend
             $routeName = $input['RouteName'] ?? '';
             $description = $input['Description'] ?? '';
+            $startPointName = $input['StartPointName'] ?? null;
+            $startLatitude = $input['StartLatitude'] ?? null;
+            $startLongitude = $input['StartLongitude'] ?? null;
+            $endPointName = $input['EndPointName'] ?? null;
+            $endLatitude = $input['EndLatitude'] ?? null;
+            $endLongitude = $input['EndLongitude'] ?? null;
+            
             if (!$routeName) {
                 echo json_encode(['success' => false, 'message' => 'Thiếu tên tuyến']);
                 exit;
             }
-            $stmt = $db->prepare("INSERT INTO routes (RouteName, Description) VALUES (?, ?)");
+            
+            $stmt = $db->prepare("INSERT INTO routes (RouteName, Description, 
+                StartPointName, StartLatitude, StartLongitude,
+                EndPointName, EndLatitude, EndLongitude) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
             $stmt->execute([
                 $routeName,
-                $description
+                $description,
+                $startPointName,
+                $startLatitude,
+                $startLongitude,
+                $endPointName,
+                $endLatitude,
+                $endLongitude
             ]);
             echo json_encode([
                 'success' => true,
@@ -57,14 +80,31 @@ try {
             $routeId = $input['RouteID'] ?? $input['id'] ?? null;
             $routeName = $input['RouteName'] ?? '';
             $description = $input['Description'] ?? '';
+            $startPointName = $input['StartPointName'] ?? null;
+            $startLatitude = $input['StartLatitude'] ?? null;
+            $startLongitude = $input['StartLongitude'] ?? null;
+            $endPointName = $input['EndPointName'] ?? null;
+            $endLatitude = $input['EndLatitude'] ?? null;
+            $endLongitude = $input['EndLongitude'] ?? null;
+            
             if (!$routeId || !$routeName) {
                 echo json_encode(['success' => false, 'message' => 'Thiếu thông tin tuyến đường']);
                 exit;
             }
-            $stmt = $db->prepare("UPDATE routes SET RouteName=?, Description=? WHERE RouteID=?");
+            
+            $stmt = $db->prepare("UPDATE routes SET RouteName=?, Description=?,
+                StartPointName=?, StartLatitude=?, StartLongitude=?,
+                EndPointName=?, EndLatitude=?, EndLongitude=?
+                WHERE RouteID=?");
             $stmt->execute([
                 $routeName,
                 $description,
+                $startPointName,
+                $startLatitude,
+                $startLongitude,
+                $endPointName,
+                $endLatitude,
+                $endLongitude,
                 $routeId
             ]);
             echo json_encode(['success' => true, 'message' => 'Cập nhật thành công']);
