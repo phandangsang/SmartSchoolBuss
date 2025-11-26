@@ -1105,8 +1105,8 @@ export default function AdminPage() {
                 return (
                     <>
                         <div className="admin-header mb-4">
-                            <h1 className="admin-title">Theo dõi GPS</h1>
-                            <p className="admin-subtitle">Vị trí xe buýt thời gian thực</p>
+                            <h1 className="admin-title">Theo dõi</h1>
+                            <p className="admin-subtitle">Vị trí xe buýt</p>
                         </div>
 
                     </>

@@ -14,7 +14,7 @@ export default function Sidebar({ activeTab, onTabChange, userRole = 'admin' }) 
         { id: 'routes', label: 'Quản lý tuyến đường' },
         { id: 'assignments', label: 'Phân công' },
         { id: 'schedule', label: 'Lịch trình' },
-        { id: 'tracking', label: 'Theo dõi GPS' },
+        { id: 'tracking', label: 'Theo dõi xe buýt' },
         { id: 'contact', label: 'Liên hệ' },
     ];
 
