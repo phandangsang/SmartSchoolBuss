@@ -253,6 +253,25 @@ export const adminAPI = {
     }),
 };
 
+// Route Stops APIs
+export const routeStopsAPI = {
+    getStopsByRoute: (routeId) => fetchAPI(`/routestops.php?route_id=${routeId}`),
+    getAllStops: () => fetchAPI('/routestops.php'),
+    getStop: (stopId) => fetchAPI(`/routestops.php?id=${stopId}`),
+    createStop: (stopData) => fetchAPI('/routestops.php', {
+        method: 'POST',
+        body: JSON.stringify(stopData),
+    }),
+    updateStop: (stopId, stopData) => fetchAPI('/routestops.php', {
+        method: 'PUT',
+        body: JSON.stringify({ StopID: stopId, ...stopData }),
+    }),
+    deleteStop: (stopId) => fetchAPI('/routestops.php', {
+        method: 'DELETE',
+        body: JSON.stringify({ id: stopId }),
+    }),
+};
+
 // Driver APIs
 export const driverAPI = {
     getDashboard: () => fetchAPI('/driver/dashboard'),

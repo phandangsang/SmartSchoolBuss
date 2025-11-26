@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Button, Table, Badge, Modal, Form } from 'react-bootstrap';
 import Sidebar from '../components/sidebar';
-import { adminAPI, assignmentAPI } from '../utils/api';
+import BusMap from '../components/BusMap';
+import { adminAPI, assignmentAPI, routeStopsAPI } from '../utils/api';
 import '../styles/admin.css';
 
 export default function AdminPage() {
@@ -19,6 +20,8 @@ export default function AdminPage() {
     const [buses, setBuses] = useState([]);
     const [routes, setRoutes] = useState([]);
     const [assignments, setAssignments] = useState([]);
+    const [routeStops, setRouteStops] = useState([]);
+    const [selectedRouteId, setSelectedRouteId] = useState(null);
 
     // Sample data for schedules
     const [schedules, setSchedules] = useState([]);
@@ -44,11 +47,11 @@ export default function AdminPage() {
     const [showScheduleModal, setShowScheduleModal] = useState(false);
 
     // Form data states
-    const [studentForm, setStudentForm] = useState({ StudentID: '', FullName: '', ClassName: '', SchoolName: '', ParentID: '' });
+    const [studentForm, setStudentForm] = useState({ StudentID: '', FullName: '', ClassName: '', SchoolName: '', ParentID: '', RouteID: '', PickupStopID: '', DropoffStopID: '' });
     const [parentForm, setParentForm] = useState({ ParentID: '', FullName: '', Phone: '', Email: '', Address: '', UserID: '', Username: '', Password: '' });
     const [driverForm, setDriverForm] = useState({ DriverID: '', FullName: '', Phone: '', LicenseNumber: 'B2', Status: 'active', UserID: '', Username: '', Password: '' });
     const [busForm, setBusForm] = useState({ BusID: '', PlateNumber: '', Capacity: '', Status: 'running' });
-    const [routeForm, setRouteForm] = useState({ RouteID: '', RouteName: '', Description: '', Status: 'scheduled' });
+    const [routeForm, setRouteForm] = useState({ RouteID: '', RouteName: '', Description: '', StartPointName: '', StartLatitude: '', StartLongitude: '', EndPointName: '', EndLatitude: '', EndLongitude: '' });
     const [scheduleForm, setScheduleForm] = useState({
         TripID: '',
         AssignmentID: '',
@@ -89,7 +92,44 @@ export default function AdminPage() {
         if (activeTab === 'contact') {
             loadMessages();
         }
+        // Không auto-load routeStops khi vào tab tracking
+        // User phải chọn tuyến từ dropdown
     }, [activeTab]);
+
+    // Load route stops theo tuyến được chọn
+    const loadAllRouteStops = async (routeId = null) => {
+        try {
+            // Clear state trước khi load
+            setRouteStops([]);
+
+            console.log('Loading stops for route:', routeId);
+            let response;
+            if (routeId) {
+                response = await routeStopsAPI.getStopsByRoute(routeId);
+            } else {
+                response = await routeStopsAPI.getAllStops();
+            }
+            console.log('Route stops response:', response);
+            if (response.success) {
+                setRouteStops(response.data);
+                console.log('Loaded stops:', response.data);
+            }
+        } catch (error) {
+            console.error('Failed to load route stops:', error);
+        }
+    };
+
+    // Handler khi chọn tuyến
+    const handleRouteSelect = (routeId) => {
+        const parsedRouteId = routeId ? parseInt(routeId) : null;
+        console.log('Selected Route ID:', parsedRouteId);
+        setSelectedRouteId(parsedRouteId);
+        if (parsedRouteId) {
+            loadAllRouteStops(parsedRouteId);
+        } else {
+            loadAllRouteStops();
+        }
+    };
 
     // Load routes và assignments, sau đó map assignment vào routes
     const loadRoutesAndAssignments = async () => {
@@ -657,7 +697,8 @@ export default function AdminPage() {
                                             <th>Họ tên</th>
                                             <th>Lớp</th>
                                             <th>Tuyến xe</th>
-                                            <th>Địa chỉ</th>
+                                            <th>Điểm đón</th>
+                                            <th>Điểm trả</th>
                                             <th>Thao tác</th>
                                         </tr>
                                     </thead>
@@ -668,7 +709,8 @@ export default function AdminPage() {
                                                 <td>{student.FullName}</td>
                                                 <td>{student.ClassName}</td>
                                                 <td>{student.RouteName || <span className="text-muted">Chưa gán</span>}</td>
-                                                <td>{student.SchoolName}</td>
+                                                <td>{student.PickupStopName || <span className="text-muted">Chưa gán</span>}</td>
+                                                <td>{student.DropoffStopName || <span className="text-muted">Chưa gán</span>}</td>
                                                 <td>
                                                     <Button variant="link" size="sm" className="p-0 me-2 text-primary" onClick={() => handleEditStudent(student)}>
                                                         Sửa
@@ -1106,9 +1148,54 @@ export default function AdminPage() {
                     <>
                         <div className="admin-header mb-4">
                             <h1 className="admin-title">Theo dõi</h1>
-                            <p className="admin-subtitle">Vị trí xe buýt</p>
+                            <p className="admin-subtitle">Vị trí xe buýt và tuyến đường</p>
                         </div>
 
+                        {/* Dropdown chọn tuyến */}
+                        <Card className="mb-3">
+                            <Card.Body>
+                                <Row>
+                                    <Col md={4}>
+                                        <Form.Group>
+                                            <Form.Label><strong>Chọn tuyến đường:</strong></Form.Label>
+                                            <Form.Select
+                                                value={selectedRouteId || ''}
+                                                onChange={(e) => handleRouteSelect(e.target.value || null)}
+                                            >
+                                                <option value="">-- Tất cả tuyến --</option>
+                                                {routes.map(route => (
+                                                    <option key={route.RouteID} value={route.RouteID}>
+                                                        {route.RouteName}
+                                                    </option>
+                                                ))}
+                                            </Form.Select>
+                                        </Form.Group>
+                                    </Col>
+                                    <Col md={8} className="d-flex align-items-end">
+                                        <div className="text-muted">
+                                            {selectedRouteId ? (
+                                                <span>Hiển thị {routeStops.length} điểm dừng của tuyến được chọn</span>
+                                            ) : (
+                                                <span>Hiển thị tất cả {routeStops.length} điểm dừng</span>
+                                            )}
+                                        </div>
+                                    </Col>
+                                </Row>
+                            </Card.Body>
+                        </Card>
+
+                        <Card>
+                            <Card.Body>
+                                <BusMap
+                                    key={selectedRouteId || 'all-routes'}
+                                    busId={null}
+                                    busInfo={null}
+                                    routeStops={routeStops}
+                                />
+                            </Card.Body>
+                        </Card>
+
+                        { }
                     </>
                 );
 

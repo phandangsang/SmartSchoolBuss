@@ -1,12 +1,13 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react';
-import { GoogleMap, Marker, InfoWindow, useJsApiLoader } from '@react-google-maps/api';
+import { useEffect, useState, useCallback, useMemo } from 'react';
+import { GoogleMap, Marker, InfoWindow, Polyline, useJsApiLoader } from '@react-google-maps/api';
 
 const containerStyle = {
-    width: '100%',
-    height: '500px',
-    borderRadius: '8px'
+    width: '150%',
+    height: '700px',
+    borderRadius: '8px',
+    marginLeft: '-10%'
 };
 
 const defaultCenter = {
@@ -14,10 +15,11 @@ const defaultCenter = {
     lng: 106.6297
 };
 
-export default function BusMap({ busId, busInfo, studentPickupLocation }) {
+export default function BusMap({ busId, busInfo, studentPickupLocation, routeStops = [] }) {
     const [map, setMap] = useState(null);
     const [busLocation, setBusLocation] = useState(null);
     const [showInfo, setShowInfo] = useState(false);
+    const [selectedStop, setSelectedStop] = useState(null);
     const [lastUpdate, setLastUpdate] = useState(null);
 
     const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
@@ -61,6 +63,16 @@ export default function BusMap({ busId, busInfo, studentPickupLocation }) {
 
     const onLoad = useCallback((map) => setMap(map), []);
     const onUnmount = useCallback(() => setMap(null), []);
+
+    // Debug: Log routeStops khi thay đổi
+    useEffect(() => {
+        console.log('BusMap received routeStops:', routeStops);
+        console.log('Number of stops:', routeStops.length);
+        if (routeStops.length > 0) {
+            const uniqueRoutes = [...new Set(routeStops.map(s => s.RouteID))];
+            console.log('Unique RouteIDs in routeStops:', uniqueRoutes);
+        }
+    }, [routeStops]);
 
     if (!apiKey) {
         return (
@@ -127,6 +139,81 @@ export default function BusMap({ busId, busInfo, studentPickupLocation }) {
                         title="Điểm đón"
                     />
                 )}
+
+                {/* Hiển thị các điểm dừng trên tuyến */}
+                {routeStops.map((stop, index) => (
+                    <Marker
+                        key={stop.StopID}
+                        position={{
+                            lat: parseFloat(stop.Latitude),
+                            lng: parseFloat(stop.Longitude)
+                        }}
+                        icon={{
+                            url: "https://maps.google.com/mapfiles/kml/paddle/blu-circle.png",
+                            scaledSize: new window.google.maps.Size(40, 40)
+                        }}
+                        label={{
+                            text: String(stop.StopOrder || index + 1),
+                            color: "white",
+                            fontSize: "14px",
+                            fontWeight: "bold"
+                        }}
+                        onClick={() => setSelectedStop(stop)}
+                    >
+                        {selectedStop?.StopID === stop.StopID && (
+                            <InfoWindow onCloseClick={() => setSelectedStop(null)}>
+                                <div style={{ padding: '8px' }}>
+                                    <h6 style={{ margin: '0 0 8px 0', color: '#0066cc' }}>
+                                        {stop.StopName}
+                                    </h6>
+                                    <p style={{ margin: '4px 0', fontSize: '14px' }}>
+                                        <strong>Thứ tự:</strong> Điểm dừng {stop.StopOrder}
+                                    </p>
+                                    {stop.ExpectedTime && (
+                                        <p style={{ margin: '4px 0', fontSize: '12px', color: '#666' }}>
+                                            Giờ dự kiến: {stop.ExpectedTime}
+                                        </p>
+                                    )}
+                                </div>
+                            </InfoWindow>
+                        )}
+                    </Marker>
+                ))}
+
+                {/* Vẽ tuyến đường nối các điểm dừng - nhóm theo RouteID */}
+                {routeStops.length > 1 && (() => {
+                    // Nhóm điểm dừng theo RouteID
+                    const routeGroups = {};
+                    routeStops.forEach(stop => {
+                        if (!routeGroups[stop.RouteID]) {
+                            routeGroups[stop.RouteID] = [];
+                        }
+                        routeGroups[stop.RouteID].push(stop);
+                    });
+
+                    // Vẽ polyline cho từng tuyến
+                    return Object.values(routeGroups).map((stops, index) => {
+                        if (stops.length < 2) return null;
+
+                        return (
+                            <Polyline
+                                key={`route-${stops[0].RouteID}-${index}`}
+                                path={stops
+                                    .sort((a, b) => a.StopOrder - b.StopOrder)
+                                    .map(stop => ({
+                                        lat: parseFloat(stop.Latitude),
+                                        lng: parseFloat(stop.Longitude)
+                                    }))}
+                                options={{
+                                    strokeColor: '#2196F3',
+                                    strokeOpacity: 0.8,
+                                    strokeWeight: 4,
+                                    geodesic: true
+                                }}
+                            />
+                        );
+                    });
+                })()}
             </GoogleMap>
 
             <div className="mt-3">
