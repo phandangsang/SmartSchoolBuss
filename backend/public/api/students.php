@@ -33,15 +33,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
         Helpers::error_response('Thiếu dữ liệu đầu vào', 400);
     }
     $routeId = isset($data['RouteID']) && $data['RouteID'] !== '' ? $data['RouteID'] : null;
+    $pickupStopId = isset($data['PickupStopID']) && $data['PickupStopID'] !== '' ? $data['PickupStopID'] : null;
+    $dropoffStopId = isset($data['DropoffStopID']) && $data['DropoffStopID'] !== '' ? $data['DropoffStopID'] : null;
     
     try {
-        $stmt = $pdo->prepare('UPDATE students SET FullName = ?, ClassName = ?, SchoolName = ?, ParentID = ?, RouteID = ? WHERE StudentID = ?');
+        $stmt = $pdo->prepare('UPDATE students SET FullName = ?, ClassName = ?, SchoolName = ?, ParentID = ?, RouteID = ?, PickupStopID = ?, DropoffStopID = ? WHERE StudentID = ?');
         $stmt->execute([
             $data['FullName'],
             $data['ClassName'],
             $data['SchoolName'],
             $data['ParentID'],
             $routeId,
+            $pickupStopId,
+            $dropoffStopId,
             $data['StudentID']
         ]);
         Helpers::success_response(['message' => 'Cập nhật học sinh thành công']);
@@ -58,15 +62,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         Helpers::error_response('Thiếu dữ liệu đầu vào', 400);
     }
     $routeId = isset($data['RouteID']) && $data['RouteID'] !== '' ? $data['RouteID'] : null;
+    $pickupStopId = isset($data['PickupStopID']) && $data['PickupStopID'] !== '' ? $data['PickupStopID'] : null;
+    $dropoffStopId = isset($data['DropoffStopID']) && $data['DropoffStopID'] !== '' ? $data['DropoffStopID'] : null;
 
     try {
-        $stmt = $pdo->prepare('INSERT INTO students (FullName, ClassName, SchoolName, ParentID, RouteID) VALUES (?, ?, ?, ?, ?)');
+        $stmt = $pdo->prepare('INSERT INTO students (FullName, ClassName, SchoolName, ParentID, RouteID, PickupStopID, DropoffStopID) VALUES (?, ?, ?, ?, ?, ?, ?)');
         $stmt->execute([
             $data['FullName'],
             $data['ClassName'],
             $data['SchoolName'],
             $data['ParentID'],
-            $routeId
+            $routeId,
+            $pickupStopId,
+            $dropoffStopId
         ]);
         Helpers::success_response(['message' => 'Thêm học sinh thành công']);
     } catch (Exception $e) {
@@ -77,10 +85,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 try {
     $stmt = $pdo->query('
-        SELECT s.*, p.FullName as ParentName, r.RouteName 
+        SELECT 
+            s.*,
+            p.FullName as ParentName,
+            r.RouteName,
+            pickup.StopName as PickupStopName,
+            pickup.Latitude as PickupLatitude,
+            pickup.Longitude as PickupLongitude,
+            dropoff.StopName as DropoffStopName,
+            dropoff.Latitude as DropoffLatitude,
+            dropoff.Longitude as DropoffLongitude
         FROM students s
         LEFT JOIN parents p ON s.ParentID = p.ParentID
         LEFT JOIN routes r ON s.RouteID = r.RouteID
+        LEFT JOIN routestops pickup ON s.PickupStopID = pickup.StopID
+        LEFT JOIN routestops dropoff ON s.DropoffStopID = dropoff.StopID
     ');
     $students = $stmt->fetchAll();
     Helpers::success_response($students);
