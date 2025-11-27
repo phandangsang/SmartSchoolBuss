@@ -72,6 +72,9 @@ export default function AdminPage() {
     const [messages, setMessages] = useState([]);
     const [messageForm, setMessageForm] = useState({ ToUserID: '', Content: '', MessageType: 'TEXT' });
 
+    // Available stops for selected route (for student form)
+    const [availableStops, setAvailableStops] = useState([]);
+
     // Kiểm tra đăng nhập và load data
     useEffect(() => {
         const userRole = localStorage.getItem('userRole');
@@ -87,6 +90,23 @@ export default function AdminPage() {
             window.location.href = '/login';
         }
     }, []);
+
+    // Fetch route stops when RouteID changes in student form
+    useEffect(() => {
+        if (!studentForm.RouteID) {
+            setAvailableStops([]);
+            return;
+        }
+
+        fetch(`http://localhost/SmartSchoolBus-main/backend/public/api/route_stops.php?route_id=${studentForm.RouteID}`)
+            .then(res => res.json())
+            .then(res => {
+                if (res.success && res.data) {
+                    setAvailableStops(res.data);
+                }
+            })
+            .catch(err => console.error('Error fetching route stops:', err));
+    }, [studentForm.RouteID]);
 
     useEffect(() => {
         if (activeTab === 'contact') {
@@ -264,13 +284,15 @@ export default function AdminPage() {
                     return;
                 }
                 if (editingStudent) {
-                    // Update existing student
+                    //  existing student
                     const updateData = {
                         FullName: studentForm.FullName,
                         ClassName: studentForm.ClassName,
                         SchoolName: studentForm.SchoolName,
                         ParentID: parseInt(studentForm.ParentID),
-                        RouteID: studentForm.RouteID
+                        RouteID: studentForm.RouteID,
+                        PickupStopID: studentForm.PickupStopID || null,
+                        DropoffStopID: studentForm.DropoffStopID || null
                     };
                     await adminAPI.updateStudent(editingStudent.StudentID, updateData);
                     setEditingStudent(null);
@@ -281,12 +303,14 @@ export default function AdminPage() {
                         ClassName: studentForm.ClassName,
                         SchoolName: studentForm.SchoolName,
                         ParentID: parseInt(studentForm.ParentID),
-                        RouteID: studentForm.RouteID
+                        RouteID: studentForm.RouteID,
+                        PickupStopID: studentForm.PickupStopID || null,
+                        DropoffStopID: studentForm.DropoffStopID || null
                     };
                     await adminAPI.createStudent(newStudentData);
                 }
                 await loadStudents(); // Reload students from backend
-                setStudentForm({ StudentID: '', FullName: '', ClassName: '', SchoolName: '', ParentID: '', RouteID: '' });
+                setStudentForm({ StudentID: '', FullName: '', ClassName: '', SchoolName: '', ParentID: '', RouteID: '', PickupStopID: '', DropoffStopID: '' });
                 setShowStudentModal(false);
             } catch (error) {
                 console.error('Failed to save student:', error);
@@ -1263,13 +1287,49 @@ export default function AdminPage() {
                             <Form.Label>Tuyến xe (Tùy chọn)</Form.Label>
                             <Form.Select
                                 value={studentForm.RouteID || ''}
-                                onChange={(e) => setStudentForm({ ...studentForm, RouteID: e.target.value })}
+                                onChange={(e) => setStudentForm({ ...studentForm, RouteID: e.target.value, PickupStopID: '', DropoffStopID: '' })}
                             >
                                 <option value="">-- Chưa gán tuyến --</option>
                                 {routes.map(r => (
                                     <option key={r.RouteID} value={r.RouteID}>{r.RouteName}</option>
                                 ))}
                             </Form.Select>
+                        </Form.Group>
+                        <Form.Group className="mb-3">
+                            <Form.Label>Điểm đón</Form.Label>
+                            <Form.Select
+                                value={studentForm.PickupStopID || ''}
+                                onChange={(e) => setStudentForm({ ...studentForm, PickupStopID: e.target.value })}
+                                disabled={!studentForm.RouteID}
+                            >
+                                <option value="">-- Chọn điểm đón --</option>
+                                {availableStops.map(stop => (
+                                    <option key={stop.StopID} value={stop.StopID}>
+                                        {stop.StopName}
+                                    </option>
+                                ))}
+                            </Form.Select>
+                            {!studentForm.RouteID && (
+                                <Form.Text className="text-muted">Vui lòng chọn tuyến xe trước</Form.Text>
+                            )}
+                        </Form.Group>
+                        <Form.Group className="mb-3">
+                            <Form.Label>Điểm trả</Form.Label>
+                            <Form.Select
+                                value={studentForm.DropoffStopID || ''}
+                                onChange={(e) => setStudentForm({ ...studentForm, DropoffStopID: e.target.value })}
+                                disabled={!studentForm.RouteID}
+                            >
+                                <option value="">-- Chọn điểm trả --</option>
+                                {availableStops.map(stop => (
+                                    <option key={stop.StopID} value={stop.StopID}>
+                                        {stop.StopName}
+                                    </option>
+                                ))}
+                            </Form.Select>
+                            {!studentForm.RouteID && (
+                                <Form.Text className="text-muted">Vui lòng chọn tuyến xe trước</Form.Text>
+                            )}
                         </Form.Group>
                     </Form>
                 </Modal.Body>

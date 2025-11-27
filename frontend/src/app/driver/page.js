@@ -185,6 +185,79 @@ export default function DriverPage() {
         setLoading(false);
     };
 
+    // Hàm tính khoảng cách giữa 2 điểm GPS (Haversine formula)
+    const calculateDistance = (lat1, lon1, lat2, lon2) => {
+        const R = 6371e3; // Bán kính Trái Đất (mét)
+        const φ1 = lat1 * Math.PI / 180;
+        const φ2 = lat2 * Math.PI / 180;
+        const Δφ = (lat2 - lat1) * Math.PI / 180;
+        const Δλ = (lon2 - lon1) * Math.PI / 180;
+
+        const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+            Math.cos(φ1) * Math.cos(φ2) *
+            Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+        return R * c; // Khoảng cách (mét)
+    };
+
+    // Tự động cập nhật trạng thái học sinh gần điểm hiện tại
+    const autoUpdateNearbyStudents = async (tripId, currentLat, currentLng) => {
+        const PROXIMITY_THRESHOLD = 50; // 50 mét
+
+        try {
+            console.log(`🔍 Checking students near (${currentLat}, ${currentLng})`);
+
+            // Lấy danh sách học sinh
+            const res = await driverAPI.getTripStudents(tripId);
+            if (!res.success || !res.data) {
+                console.log('⚠️ No student data returned');
+                return;
+            }
+
+            const students = res.data;
+            console.log(`👥 Found ${students.length} students`);
+
+            // Kiểm tra từng học sinh
+            for (const student of students) {
+                console.log(`\n📋 Student: ${student.FullName}`);
+                console.log(`   Status: ${student.Status}`);
+                console.log(`   PickupLat: ${student.PickupLatitude}, PickupLng: ${student.PickupLongitude}`);
+
+                // Chỉ cập nhật nếu chưa đón (pending hoặc waiting)
+                if (student.Status !== 'pending' && student.Status !== 'waiting') {
+                    console.log(`   ❌ Skipped - Status is ${student.Status}`);
+                    continue;
+                }
+
+                // Kiểm tra có tọa độ điểm đón không
+                if (!student.PickupLatitude || !student.PickupLongitude) {
+                    console.log(`   ❌ Skipped - No pickup coordinates`);
+                    continue;
+                }
+
+                const distance = calculateDistance(
+                    currentLat, currentLng,
+                    parseFloat(student.PickupLatitude),
+                    parseFloat(student.PickupLongitude)
+                );
+
+                console.log(`   📏 Distance: ${distance.toFixed(1)}m`);
+
+                // Nếu gần (< 50m), tự động đánh dấu đã đón
+                if (distance < PROXIMITY_THRESHOLD) {
+                    await driverAPI.reportStudent(tripId, student.StudentID, 'picked');
+                    console.log(`   ✅ Auto-picked: ${student.FullName} (${distance.toFixed(1)}m)`);
+                } else {
+                    console.log(`   ⏳ Too far (${distance.toFixed(1)}m > ${PROXIMITY_THRESHOLD}m)`);
+                }
+            }
+        } catch (error) {
+            console.error('Error auto-updating students:', error);
+        }
+    };
+
+
     // Start auto simulation for a trip
     const handleStartTrip = async (trip) => {
         if (runningTrips[trip.TripID]) {
@@ -236,6 +309,13 @@ export default function DriverPage() {
                 });
 
                 console.log(`Đang ở điểm dừng ${currentStopIndex + 1}/${stops.length}: ${stop.StopName}`);
+
+                // Tự động cập nhật học sinh gần điểm hiện tại
+                await autoUpdateNearbyStudents(
+                    trip.TripID,
+                    parseFloat(stop.Latitude),
+                    parseFloat(stop.Longitude)
+                );
                 currentStopIndex++;
             }, 5000); // Every 5 seconds
 
