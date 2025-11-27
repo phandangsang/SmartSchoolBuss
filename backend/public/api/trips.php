@@ -22,7 +22,7 @@ try {
         case 'GET':
             if (isset($_GET['id'])) {
                 $stmt = $db->prepare('
-                    SELECT t.*, r.RouteName, b.PlateNumber, d.FullName as DriverName
+                    SELECT t.*, r.RouteName, r.RouteID, b.PlateNumber, b.BusID, d.FullName as DriverName, d.DriverID
                     FROM trips t
                     LEFT JOIN routeassignments a ON t.AssignmentID = a.AssignmentID
                     LEFT JOIN routes r ON a.RouteID = r.RouteID
@@ -35,7 +35,7 @@ try {
                 echo json_encode(['success' => true, 'data' => $trip]);
             } else {
                 $stmt = $db->query('
-                    SELECT t.*, r.RouteName, b.PlateNumber, d.FullName as DriverName
+                    SELECT t.*, r.RouteName, r.RouteID, b.PlateNumber, b.BusID, d.FullName as DriverName, d.DriverID
                     FROM trips t
                     LEFT JOIN routeassignments a ON t.AssignmentID = a.AssignmentID
                     LEFT JOIN routes r ON a.RouteID = r.RouteID

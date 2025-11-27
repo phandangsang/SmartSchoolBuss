@@ -1188,7 +1188,7 @@ export default function AdminPage() {
                             <Card.Body>
                                 <BusMap
                                     key={selectedRouteId || 'all-routes'}
-                                    busId={null}
+                                    busId={selectedRouteId ? (routes.find(r => r.RouteID === selectedRouteId)?.assignedBus || null) : null}
                                     busInfo={null}
                                     routeStops={routeStops}
                                 />

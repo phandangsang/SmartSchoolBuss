@@ -23,6 +23,7 @@ import { useState, useEffect } from 'react';
 
 import { Container, Card, Table, Button, Badge, Alert, Modal, Form } from 'react-bootstrap';
 import Sidebar from '../components/sidebar';
+
 import { adminAPI, assignmentAPI, driverAPI } from '../utils/api';
 import '../styles/driver.css';
 
@@ -41,6 +42,10 @@ export default function DriverPage() {
     const [showAlertModal, setShowAlertModal] = useState(false);
     const [alertContent, setAlertContent] = useState('');
     const [reportStatus, setReportStatus] = useState('');
+    const [driverBusId, setDriverBusId] = useState(null);
+
+    // Simulation states
+    const [runningTrips, setRunningTrips] = useState({}); // { tripId: { intervalId, currentStopIndex, stops } }
 
     // Message states
     const [messages, setMessages] = useState([]);
@@ -92,6 +97,10 @@ export default function DriverPage() {
                 // Lọc các phân công có DriverID trùng với tài xế
                 const driverAssignments = (res.data || []).filter(a => String(a.DriverID) === String(driverId));
                 setAssignments(driverAssignments);
+                // Lưu BusID đầu tiên để dùng cho GPS Simulator
+                if (driverAssignments.length > 0) {
+                    setDriverBusId(driverAssignments[0].BusID);
+                }
                 // Lấy thông tin tuyến và xe cho các phân công này
                 const routeIds = [...new Set(driverAssignments.map(a => a.RouteID))];
                 const busIds = [...new Set(driverAssignments.map(a => a.BusID))];
@@ -176,6 +185,100 @@ export default function DriverPage() {
         setLoading(false);
     };
 
+    // Start auto simulation for a trip
+    const handleStartTrip = async (trip) => {
+        if (runningTrips[trip.TripID]) {
+            alert('Chuyến này đang chạy!');
+            return;
+        }
+
+        try {
+            // Get route stops
+            const response = await fetch(`http://localhost/SmartSchoolBus-main/backend/public/api/route_stops.php?route_id=${trip.RouteID}`);
+            const data = await response.json();
+
+            if (!data.success || !data.data || data.data.length === 0) {
+                alert('Không tìm thấy điểm dừng cho tuyến này!');
+                return;
+            }
+
+            const stops = data.data;
+            let currentStopIndex = 0;
+
+            // Start interval to update location
+            const intervalId = setInterval(async () => {
+                if (currentStopIndex >= stops.length) {
+                    // Completed all stops
+                    clearInterval(intervalId);
+                    setRunningTrips(prev => {
+                        const newState = { ...prev };
+                        delete newState[trip.TripID];
+                        return newState;
+                    });
+                    alert(`Chuyến ${trip.RouteName} đã hoàn thành!`);
+                    return;
+                }
+
+                const stop = stops[currentStopIndex];
+
+                // Send location to server
+                await fetch('http://localhost/SmartSchoolBus-main/backend/public/api/bus_location.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        busId: trip.BusID,
+                        tripId: trip.TripID,
+                        latitude: parseFloat(stop.Latitude),
+                        longitude: parseFloat(stop.Longitude),
+                        speed: 30,
+                        heading: 0
+                    })
+                });
+
+                console.log(`Đang ở điểm dừng ${currentStopIndex + 1}/${stops.length}: ${stop.StopName}`);
+                currentStopIndex++;
+            }, 5000); // Every 5 seconds
+
+            // Save running trip state
+            setRunningTrips(prev => ({
+                ...prev,
+                [trip.TripID]: { intervalId, currentStopIndex: 0, stops }
+            }));
+
+            alert(`Bắt đầu chuyến ${trip.RouteName}!`);
+        } catch (error) {
+            console.error('Error starting trip:', error);
+            alert('Lỗi khi bắt đầu chuyến!');
+        }
+    };
+
+    // Stop auto simulation
+    const handleStopTrip = (tripId) => {
+        const runningTrip = runningTrips[tripId];
+        if (!runningTrip) {
+            alert('Chuyến này không chạy!');
+            return;
+        }
+
+        clearInterval(runningTrip.intervalId);
+        setRunningTrips(prev => {
+            const newState = { ...prev };
+            delete newState[tripId];
+            return newState;
+        });
+        alert('Đã dừng chuyến!');
+    };
+
+    // Cleanup on unmount
+    useEffect(() => {
+        return () => {
+            // Clear all intervals when component unmounts
+            Object.values(runningTrips).forEach(trip => {
+                clearInterval(trip.intervalId);
+            });
+        };
+    }, [runningTrips]);
+
     if (!isAuthenticated) {
         return <div>Loading...</div>;
     }
@@ -197,7 +300,7 @@ export default function DriverPage() {
                             <th>Giờ xuất phát</th>
                             <th>Trạng thái</th>
                             <th>Học sinh</th>
-                            <th>Báo cáo</th>
+                            <th>Điều khiển</th>
                         </tr >
                     </thead >
                     <tbody>
@@ -217,9 +320,18 @@ export default function DriverPage() {
                                     </Button>
                                 </td>
                                 <td>
-                                    <Button size="sm" variant="warning" onClick={() => setShowAlertModal(true)}>
-                                        Gửi cảnh báo
-                                    </Button>
+                                    {runningTrips[trip.TripID] ? (
+                                        <>
+                                            <Badge bg="success" className="me-2">Đang chạy...</Badge>
+                                            <Button size="sm" variant="danger" onClick={() => handleStopTrip(trip.TripID)}>
+                                                ⏸️ Dừng
+                                            </Button>
+                                        </>
+                                    ) : (
+                                        <Button size="sm" variant="success" onClick={() => handleStartTrip(trip)}>
+                                            🚀 Bắt đầu
+                                        </Button>
+                                    )}
                                 </td>
                             </tr>
                         ))}

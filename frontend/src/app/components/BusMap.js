@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { GoogleMap, Marker, InfoWindow, Polyline, useJsApiLoader } from '@react-google-maps/api';
 
 const containerStyle = {
@@ -61,6 +61,67 @@ export default function BusMap({ busId, busInfo, studentPickupLocation, routeSto
         }
     }, [map, busLocation]);
 
+    // Animation state
+    const [animatedPosition, setAnimatedPosition] = useState(null);
+    const animationRef = useRef(null);
+    const lastPositionRef = useRef(null);
+    const startTimeRef = useRef(null);
+    const ANIMATION_DURATION = 2000; // 2 seconds for smooth transition
+
+    // Initialize animated position when busLocation is first loaded
+    useEffect(() => {
+        if (busLocation && !animatedPosition) {
+            setAnimatedPosition(busLocation);
+            lastPositionRef.current = busLocation;
+        }
+    }, [busLocation]);
+
+    // Handle animation when busLocation changes
+    useEffect(() => {
+        if (!busLocation || !lastPositionRef.current) return;
+
+        // If distance is too large (e.g. first load or GPS jump), snap to new location
+        const dist = Math.sqrt(
+            Math.pow(busLocation.lat - lastPositionRef.current.lat, 2) +
+            Math.pow(busLocation.lng - lastPositionRef.current.lng, 2)
+        );
+
+        if (dist > 0.01) { // ~1km
+            setAnimatedPosition(busLocation);
+            lastPositionRef.current = busLocation;
+            return;
+        }
+
+        const startPos = lastPositionRef.current;
+        const endPos = busLocation;
+        startTimeRef.current = performance.now();
+
+        const animate = (currentTime) => {
+            const elapsed = currentTime - startTimeRef.current;
+            const progress = Math.min(elapsed / ANIMATION_DURATION, 1);
+
+            // Ease out cubic function for smoother movement
+            const easeProgress = 1 - Math.pow(1 - progress, 3);
+
+            const newLat = startPos.lat + (endPos.lat - startPos.lat) * easeProgress;
+            const newLng = startPos.lng + (endPos.lng - startPos.lng) * easeProgress;
+
+            const newPos = { lat: newLat, lng: newLng };
+            setAnimatedPosition(newPos);
+
+            if (progress < 1) {
+                animationRef.current = requestAnimationFrame(animate);
+            } else {
+                lastPositionRef.current = endPos;
+            }
+        };
+
+        cancelAnimationFrame(animationRef.current);
+        animationRef.current = requestAnimationFrame(animate);
+
+        return () => cancelAnimationFrame(animationRef.current);
+    }, [busLocation]);
+
     const onLoad = useCallback((map) => setMap(map), []);
     const onUnmount = useCallback(() => setMap(null), []);
 
@@ -98,14 +159,14 @@ export default function BusMap({ busId, busInfo, studentPickupLocation, routeSto
         <div>
             <GoogleMap
                 mapContainerStyle={containerStyle}
-                center={busLocation || defaultCenter}
+                center={animatedPosition || defaultCenter}
                 zoom={15}
                 onLoad={onLoad}
                 onUnmount={onUnmount}
             >
-                {busLocation && (
+                {animatedPosition && (
                     <Marker
-                        position={busLocation}
+                        position={animatedPosition}
                         icon="https://maps.google.com/mapfiles/kml/shapes/bus.png"
                         onClick={() => setShowInfo(true)}
                     >

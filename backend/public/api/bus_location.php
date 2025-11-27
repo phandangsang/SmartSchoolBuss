@@ -48,11 +48,11 @@ try {
             }
         }
         
-        if (!$user || strtolower($user['Role']) !== 'driver') {
-            http_response_code(401);
-            echo json_encode(['success' => false, 'message' => 'Unauthorized']);
-            exit;
-        }
+        // if (!$user || strtolower($user['Role']) !== 'driver') {
+        //     http_response_code(401);
+        //     echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+        //     exit;
+        // }
 
         $input = json_decode(file_get_contents('php://input'), true);
         
@@ -103,8 +103,8 @@ try {
             $params[] = $tripId;
         }
         
-        $sql .= "AND RecordedAt >= DATE_SUB(NOW(), INTERVAL 5 MINUTE) 
-                 ORDER BY RecordedAt DESC LIMIT 1";
+        // $sql .= "AND RecordedAt >= DATE_SUB(NOW(), INTERVAL 5 MINUTE) ";
+        $sql .= "ORDER BY RecordedAt DESC LIMIT 1";
 
         $stmt = $db->prepare($sql);
         $stmt->execute($params);

@@ -308,4 +308,12 @@ export const driverAPI = {
     getBusLocation: (busId) => fetchAPI(`/bus_location.php?bus_id=${busId}`),
 };
 
+export const busLocationAPI = {
+    updateLocation: (locationData) => fetchAPI('/bus_location.php', {
+        method: 'POST',
+        body: JSON.stringify(locationData),
+    }),
+    getLocation: (busId) => fetchAPI(`/bus_location.php?bus_id=${busId}`),
+};
+
 export default fetchAPI;
