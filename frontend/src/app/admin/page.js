@@ -102,11 +102,18 @@ export default function AdminPage() {
             .then(res => res.json())
             .then(res => {
                 if (res.success && res.data) {
-                    setAvailableStops(res.data);
+                    // Filter out 'start' and 'end' pseudo stops, only keep real stops with numeric StopID
+                    const realStops = res.data.filter(stop =>
+                        stop.StopID !== 'start' &&
+                        stop.StopID !== 'end' &&
+                        typeof stop.StopID === 'number'
+                    );
+                    setAvailableStops(realStops);
                 }
             })
             .catch(err => console.error('Error fetching route stops:', err));
     }, [studentForm.RouteID]);
+
 
     useEffect(() => {
         if (activeTab === 'contact') {
@@ -330,7 +337,9 @@ export default function AdminPage() {
             ClassName: student.ClassName,
             SchoolName: student.SchoolName,
             ParentID: student.ParentID,
-            RouteID: student.RouteID || ''
+            RouteID: student.RouteID || '',
+            PickupStopID: student.PickupStopID || '',
+            DropoffStopID: student.DropoffStopID || ''
         });
         setShowStudentModal(true);
     };
@@ -1238,7 +1247,7 @@ export default function AdminPage() {
             </div>
 
             {/* Modal Thêm Học sinh */}
-            <Modal show={showStudentModal} onHide={() => { setShowStudentModal(false); setEditingStudent(null); setStudentForm({ StudentID: '', FullName: '', ClassName: '', SchoolName: '', ParentID: '' }); }}>
+            <Modal show={showStudentModal} onHide={() => { setShowStudentModal(false); setEditingStudent(null); setStudentForm({ StudentID: '', FullName: '', ClassName: '', SchoolName: '', ParentID: '', RouteID: '', PickupStopID: '', DropoffStopID: '' }); setAvailableStops([]); }}>
                 <Modal.Header closeButton>
                     <Modal.Title>{editingStudent ? 'Sửa thông tin học sinh' : 'Thêm học sinh mới'}</Modal.Title>
                 </Modal.Header>

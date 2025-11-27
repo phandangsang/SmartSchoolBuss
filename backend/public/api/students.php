@@ -37,6 +37,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
     $dropoffStopId = isset($data['DropoffStopID']) && $data['DropoffStopID'] !== '' ? $data['DropoffStopID'] : null;
     
     try {
+        // Kiểm tra PickupStopID có tồn tại không
+        if ($pickupStopId !== null) {
+            $stmt = $pdo->prepare('SELECT StopID FROM routestops WHERE StopID = ?');
+            $stmt->execute([$pickupStopId]);
+            if (!$stmt->fetch()) {
+                Helpers::error_response('Điểm đón không tồn tại trong hệ thống. Vui lòng chọn lại tuyến xe.', 400);
+            }
+        }
+        
+        // Kiểm tra DropoffStopID có tồn tại không
+        if ($dropoffStopId !== null) {
+            $stmt = $pdo->prepare('SELECT StopID FROM routestops WHERE StopID = ?');
+            $stmt->execute([$dropoffStopId]);
+            if (!$stmt->fetch()) {
+                Helpers::error_response('Điểm trả không tồn tại trong hệ thống. Vui lòng chọn lại tuyến xe.', 400);
+            }
+        }
+        
         $stmt = $pdo->prepare('UPDATE students SET FullName = ?, ClassName = ?, SchoolName = ?, ParentID = ?, RouteID = ?, PickupStopID = ?, DropoffStopID = ? WHERE StudentID = ?');
         $stmt->execute([
             $data['FullName'],
@@ -66,6 +84,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $dropoffStopId = isset($data['DropoffStopID']) && $data['DropoffStopID'] !== '' ? $data['DropoffStopID'] : null;
 
     try {
+        // Kiểm tra PickupStopID có tồn tại không
+        if ($pickupStopId !== null) {
+            $stmt = $pdo->prepare('SELECT StopID FROM routestops WHERE StopID = ?');
+            $stmt->execute([$pickupStopId]);
+            if (!$stmt->fetch()) {
+                Helpers::error_response('Điểm đón không tồn tại trong hệ thống. Vui lòng chọn lại tuyến xe.', 400);
+            }
+        }
+        
+        // Kiểm tra DropoffStopID có tồn tại không
+        if ($dropoffStopId !== null) {
+            $stmt = $pdo->prepare('SELECT StopID FROM routestops WHERE StopID = ?');
+            $stmt->execute([$dropoffStopId]);
+            if (!$stmt->fetch()) {
+                Helpers::error_response('Điểm trả không tồn tại trong hệ thống. Vui lòng chọn lại tuyến xe.', 400);
+            }
+        }
+        
         $stmt = $pdo->prepare('INSERT INTO students (FullName, ClassName, SchoolName, ParentID, RouteID, PickupStopID, DropoffStopID) VALUES (?, ?, ?, ?, ?, ?, ?)');
         $stmt->execute([
             $data['FullName'],
