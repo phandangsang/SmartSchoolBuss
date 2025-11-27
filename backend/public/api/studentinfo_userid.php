@@ -33,8 +33,21 @@ try {
     $stmt = $db->prepare('SELECT * FROM users WHERE UserID = ?');
     $stmt->execute([$userId]);
     $parentUser = $stmt->fetch();
-    // Lấy học sinh của phụ huynh
-    $stmt = $db->prepare('SELECT * FROM students WHERE ParentID = ?');
+    // Lấy học sinh của phụ huynh với thông tin điểm đón/trả
+    $stmt = $db->prepare('
+        SELECT 
+            s.*,
+            pickup.StopName as PickupPoint,
+            pickup.Latitude as PickupLatitude,
+            pickup.Longitude as PickupLongitude,
+            dropoff.StopName as DropoffPoint,
+            dropoff.Latitude as DropoffLatitude,
+            dropoff.Longitude as DropoffLongitude
+        FROM students s
+        LEFT JOIN routestops pickup ON s.PickupStopID = pickup.StopID
+        LEFT JOIN routestops dropoff ON s.DropoffStopID = dropoff.StopID
+        WHERE s.ParentID = ?
+    ');
     $stmt->execute([$parent['ParentID']]);
     $student = $stmt->fetch();
     if (!$student) {

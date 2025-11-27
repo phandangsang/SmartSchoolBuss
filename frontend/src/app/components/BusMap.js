@@ -51,7 +51,7 @@ export default function BusMap({ busId, busInfo, studentPickupLocation, routeSto
 
     useEffect(() => {
         fetchBusLocation();
-        const interval = setInterval(fetchBusLocation, 10000);
+        const interval = setInterval(fetchBusLocation, 5000);
         return () => clearInterval(interval);
     }, [fetchBusLocation]);
 

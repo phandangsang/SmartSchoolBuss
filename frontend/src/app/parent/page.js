@@ -20,6 +20,10 @@ export default function ParentPage() {
     // Xe buýt của con
     const [busInfo, setBusInfo] = useState({});
 
+    // Tuyến đường
+    const [routeId, setRouteId] = useState(null);
+    const [routeStops, setRouteStops] = useState([]);
+
     // Thông báo & cảnh báo
     const [notifications, setNotifications] = useState([]);
 
@@ -58,12 +62,34 @@ export default function ParentPage() {
                             driverPhone: driver ? driver.Phone : '',
                             route: route ? route.RouteName : '',
                         }));
+                        // Lưu RouteID để fetch route stops
+                        if (route && route.RouteID) {
+                            setRouteId(route.RouteID);
+                        }
                     }
                 });
         } else {
             window.location.href = '/login';
         }
     }, []);
+
+    // Fetch route stops khi có routeId
+    useEffect(() => {
+        if (!routeId) return;
+        fetch(`http://localhost/SmartSchoolBus-main/backend/public/api/route_stops.php?route_id=${routeId}`)
+            .then(res => res.json())
+            .then(res => {
+                if (res.success && res.data) {
+                    // Thêm RouteID vào mỗi stop để BusMap có thể nhóm được
+                    const stopsWithRouteId = res.data.map(stop => ({
+                        ...stop,
+                        RouteID: routeId
+                    }));
+                    setRouteStops(stopsWithRouteId);
+                }
+            })
+            .catch(err => console.error('Error fetching route stops:', err));
+    }, [routeId]);
 
     useEffect(() => {
         if (activeTab === 'notifications') {
@@ -140,6 +166,7 @@ export default function ParentPage() {
                                             busId={busInfo.busNumber ? busInfo.busNumber.replace('Xe ', '') : null}
                                             busInfo={busInfo}
                                             studentPickupLocation={null}
+                                            routeStops={routeStops}
                                         />
                                     </Card.Body>
                                 </Card>
