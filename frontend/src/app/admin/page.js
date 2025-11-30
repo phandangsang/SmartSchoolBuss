@@ -830,7 +830,6 @@ export default function AdminPage() {
                                             <th>Họ tên</th>
                                             <th>SĐT</th>
                                             <th>Bằng lái</th>
-                                            <th>Trạng thái</th>
                                             <th>Thao tác</th>
                                         </tr>
                                     </thead>
@@ -841,11 +840,6 @@ export default function AdminPage() {
                                                 <td>{driver.FullName}</td>
                                                 <td>{driver.Phone}</td>
                                                 <td>{driver.LicenseNumber}</td>
-                                                <td>
-                                                    <Badge bg={getStatusBadge(driver.Status?.toLowerCase()).variant}>
-                                                        {getStatusBadge(driver.Status?.toLowerCase()).text}
-                                                    </Badge>
-                                                </td>
                                                 <td>
                                                     <Button variant="link" size="sm" className="p-0 me-2 text-primary" onClick={() => handleEditDriver(driver)}>
                                                         Sửa
@@ -882,7 +876,6 @@ export default function AdminPage() {
                                             <th>Mã xe</th>
                                             <th>Biển số</th>
                                             <th>Số ghế</th>
-                                            <th>Trạng thái</th>
                                             <th>Thao tác</th>
                                         </tr>
                                     </thead>
@@ -892,11 +885,6 @@ export default function AdminPage() {
                                                 <td>{bus.BusID}</td>
                                                 <td><strong>{bus.PlateNumber}</strong></td>
                                                 <td>{bus.Capacity}</td>
-                                                <td>
-                                                    <Badge bg={getStatusBadge(bus.Status?.toLowerCase()).variant}>
-                                                        {getStatusBadge(bus.Status?.toLowerCase()).text}
-                                                    </Badge>
-                                                </td>
                                                 <td>
                                                     <Button variant="link" size="sm" className="p-0 me-2 text-primary" onClick={() => handleEditBus(bus)}>
                                                         Sửa
@@ -997,10 +985,8 @@ export default function AdminPage() {
                                                         >
                                                             <option value="">-- Chọn xe buýt --</option>
                                                             {(() => {
-                                                                const runningBuses = buses.filter(b => (b.Status || '').toLowerCase() === 'running');
-                                                                const list = runningBuses.length > 0 ? runningBuses : buses;
-                                                                if (list.length === 0) return <option disabled>Không có xe buýt</option>;
-                                                                return list.map((bus) => (
+                                                                if (buses.length === 0) return <option disabled>Không có xe buýt</option>;
+                                                                return buses.map((bus) => (
                                                                     <option key={bus.BusID} value={bus.BusID}>
                                                                         {bus.PlateNumber} ({bus.Capacity} chỗ)
                                                                     </option>
@@ -1022,10 +1008,8 @@ export default function AdminPage() {
                                                         >
                                                             <option value="">-- Chọn tài xế --</option>
                                                             {(() => {
-                                                                const activeDrivers = drivers.filter(d => (d.Status || '').toLowerCase() === 'active');
-                                                                const list = activeDrivers.length > 0 ? activeDrivers : drivers;
-                                                                if (list.length === 0) return <option disabled>Không có tài xế</option>;
-                                                                return list.map((driver) => (
+                                                                if (drivers.length === 0) return <option disabled>Không có tài xế</option>;
+                                                                return drivers.map((driver) => (
                                                                     <option key={driver.DriverID} value={driver.DriverID}>
                                                                         {driver.FullName} - {driver.Phone}
                                                                     </option>
