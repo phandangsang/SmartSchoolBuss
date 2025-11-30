@@ -119,18 +119,7 @@ export default function LoginPage() {
                                         />
                                     </Form.Group>
 
-                                    <div className="d-flex justify-content-between align-items-center mb-4">
-                                        <Form.Check
-                                            type="checkbox"
-                                            name="rememberMe"
-                                            label="Ghi nhớ đăng nhập"
-                                            checked={formData.rememberMe}
-                                            onChange={handleChange}
-                                        />
-                                        <Link href="/forgot-password" className="text-decoration-none">
-                                            Quên mật khẩu?
-                                        </Link>
-                                    </div>
+
 
                                     <Button
                                         variant="primary"

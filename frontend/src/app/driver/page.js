@@ -548,7 +548,6 @@ export default function DriverPage() {
                                     <th>Họ tên</th>
                                     <th>Điểm đón</th>
                                     <th>Trạng thái</th>
-                                    <th>Thao tác</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -565,11 +564,6 @@ export default function DriverPage() {
                                             <td>{stu.FullName}</td>
                                             <td>{stu.PickupPoint}</td>
                                             <td><Badge bg={statusVariant}>{statusLabel}</Badge></td>
-                                            <td>
-                                                <Button size="sm" variant="outline-primary" className="me-1" onClick={() => handleReportPickup(stu.StudentID, 'picked')}>Đón</Button>
-                                                <Button size="sm" variant="outline-success" className="me-1" onClick={() => handleReportPickup(stu.StudentID, 'dropped')}>Trả</Button>
-                                                <Button size="sm" variant="outline-danger" onClick={() => handleReportPickup(stu.StudentID, 'absent')}>Vắng</Button>
-                                            </td>
                                         </tr>
                                     );
                                 })}
