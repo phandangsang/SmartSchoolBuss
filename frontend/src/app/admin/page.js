@@ -68,7 +68,6 @@ export default function AdminPage() {
     const [editingRoute, setEditingRoute] = useState(null);
     const [editingSchedule, setEditingSchedule] = useState(null);
 
-    // Message state
     const [messages, setMessages] = useState([]);
     const [messageForm, setMessageForm] = useState({ ToUserID: '', Content: '', MessageType: 'TEXT' });
 
