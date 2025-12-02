@@ -201,38 +201,64 @@ export default function DriverPage() {
         return R * c; // Khoảng cách (mét)
     };
 
+    // Helper to get route from OSRM
+    const getOSRMRoute = async (start, end) => {
+        try {
+            const coords = `${start.lng},${start.lat};${end.lng},${end.lat}`;
+            const url = `https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson`;
+            const res = await fetch(url);
+            const data = await res.json();
+            if (data.code === 'Ok' && data.routes?.[0]) {
+                return data.routes[0].geometry.coordinates.map(c => ({ lat: c[1], lng: c[0] }));
+            }
+        } catch (e) { console.error(e); }
+        return null;
+    };
+
+    // Helper to resample path to have points ~50m apart
+    const resamplePath = (points, intervalMeters = 50) => {
+        if (!points || points.length < 2) return points;
+        const result = [points[0]];
+        let lastPoint = points[0];
+
+        for (let i = 1; i < points.length; i++) {
+            const dist = calculateDistance(lastPoint.lat, lastPoint.lng, points[i].lat, points[i].lng);
+            if (dist >= intervalMeters) {
+                result.push(points[i]);
+                lastPoint = points[i];
+            }
+        }
+        // Always include last point
+        if (result[result.length - 1] !== points[points.length - 1]) {
+            result.push(points[points.length - 1]);
+        }
+        return result;
+    };
+
     // Tự động cập nhật trạng thái học sinh gần điểm hiện tại
     const autoUpdateNearbyStudents = async (tripId, currentLat, currentLng) => {
         const PROXIMITY_THRESHOLD = 50; // 50 mét
 
         try {
-            console.log(`🔍 Checking students near (${currentLat}, ${currentLng})`);
+            // console.log(`🔍 Checking students near (${currentLat}, ${currentLng})`);
 
             // Lấy danh sách học sinh
             const res = await driverAPI.getTripStudents(tripId);
             if (!res.success || !res.data) {
-                console.log('⚠️ No student data returned');
                 return;
             }
 
             const students = res.data;
-            console.log(`👥 Found ${students.length} students`);
 
             // Kiểm tra từng học sinh
             for (const student of students) {
-                console.log(`\n📋 Student: ${student.FullName}`);
-                console.log(`   Status: ${student.Status}`);
-                console.log(`   PickupLat: ${student.PickupLatitude}, PickupLng: ${student.PickupLongitude}`);
-
                 // Chỉ cập nhật nếu chưa đón (pending hoặc waiting)
                 if (student.Status !== 'pending' && student.Status !== 'waiting') {
-                    console.log(`   ❌ Skipped - Status is ${student.Status}`);
                     continue;
                 }
 
                 // Kiểm tra có tọa độ điểm đón không
                 if (!student.PickupLatitude || !student.PickupLongitude) {
-                    console.log(`   ❌ Skipped - No pickup coordinates`);
                     continue;
                 }
 
@@ -242,14 +268,10 @@ export default function DriverPage() {
                     parseFloat(student.PickupLongitude)
                 );
 
-                console.log(`   📏 Distance: ${distance.toFixed(1)}m`);
-
                 // Nếu gần (< 50m), tự động đánh dấu đã đón
                 if (distance < PROXIMITY_THRESHOLD) {
                     await driverAPI.reportStudent(tripId, student.StudentID, 'picked');
                     console.log(`   ✅ Auto-picked: ${student.FullName} (${distance.toFixed(1)}m)`);
-                } else {
-                    console.log(`   ⏳ Too far (${distance.toFixed(1)}m > ${PROXIMITY_THRESHOLD}m)`);
                 }
             }
         } catch (error) {
@@ -265,6 +287,13 @@ export default function DriverPage() {
             return;
         }
 
+        // Check if this bus is already running in another trip
+        const isBusRunning = Object.values(runningTrips).some(t => t.busId === trip.BusID);
+        if (isBusRunning) {
+            alert(`Xe ${trip.PlateNumber} đang chạy ở một chuyến khác! Vui lòng dừng chuyến đó trước.`);
+            return;
+        }
+
         try {
             // Get route stops
             const response = await fetch(`http://localhost/SmartSchoolBus-main/backend/public/api/route_stops.php?route_id=${trip.RouteID}`);
@@ -275,13 +304,38 @@ export default function DriverPage() {
                 return;
             }
 
-            const stops = data.data;
-            let currentStopIndex = 0;
+            const stops = data.data.sort((a, b) => a.StopOrder - b.StopOrder);
+            console.log('✅ Loaded stops:', stops.map(s => `${s.StopName} (${s.Latitude}, ${s.Longitude})`));
+
+            // Calculate full path
+            let fullPath = [];
+            for (let i = 0; i < stops.length - 1; i++) {
+                const start = { lat: parseFloat(stops[i].Latitude), lng: parseFloat(stops[i].Longitude) };
+                const end = { lat: parseFloat(stops[i + 1].Latitude), lng: parseFloat(stops[i + 1].Longitude) };
+                const segment = await getOSRMRoute(start, end);
+                if (segment) {
+                    fullPath.push(...segment);
+                } else {
+                    console.warn(`⚠️ OSRM failed for segment ${i}, using straight line.`);
+                    fullPath.push(start, end); // Fallback to straight line
+                }
+            }
+
+            // Resample path to ~50m intervals (approx 36km/h with 5s updates)
+            const simulationPoints = resamplePath(fullPath, 50);
+            console.log(`✅ Generated ${simulationPoints.length} simulation points from ${fullPath.length} raw points.`);
+
+            if (simulationPoints.length === 0) {
+                alert('Không thể tạo lộ trình mô phỏng!');
+                return;
+            }
+
+            let currentPointIndex = 0;
 
             // Start interval to update location
             const intervalId = setInterval(async () => {
-                if (currentStopIndex >= stops.length) {
-                    // Completed all stops
+                if (currentPointIndex >= simulationPoints.length) {
+                    // Completed
                     clearInterval(intervalId);
                     setRunningTrips(prev => {
                         const newState = { ...prev };
@@ -292,7 +346,7 @@ export default function DriverPage() {
                     return;
                 }
 
-                const stop = stops[currentStopIndex];
+                const point = simulationPoints[currentPointIndex];
 
                 // Send location to server
                 await fetch('http://localhost/SmartSchoolBus-main/backend/public/api/bus_location.php', {
@@ -301,28 +355,34 @@ export default function DriverPage() {
                     body: JSON.stringify({
                         busId: trip.BusID,
                         tripId: trip.TripID,
-                        latitude: parseFloat(stop.Latitude),
-                        longitude: parseFloat(stop.Longitude),
-                        speed: 30,
+                        latitude: point.lat,
+                        longitude: point.lng,
+                        speed: 36, // Simulated speed
                         heading: 0
                     })
                 });
 
-                console.log(`Đang ở điểm dừng ${currentStopIndex + 1}/${stops.length}: ${stop.StopName}`);
+                console.log(`📍 Point ${currentPointIndex + 1}/${simulationPoints.length} - Lat: ${point.lat}, Lng: ${point.lng}`);
+
+                // Check if passing a stop
+                const nearbyStop = stops.find(s => calculateDistance(point.lat, point.lng, parseFloat(s.Latitude), parseFloat(s.Longitude)) < 60);
+                if (nearbyStop) {
+                    console.log(`🚏 Arrived at stop: ${nearbyStop.StopName}`);
+                }
 
                 // Tự động cập nhật học sinh gần điểm hiện tại
                 await autoUpdateNearbyStudents(
                     trip.TripID,
-                    parseFloat(stop.Latitude),
-                    parseFloat(stop.Longitude)
+                    point.lat,
+                    point.lng
                 );
-                currentStopIndex++;
+                currentPointIndex++;
             }, 5000); // Every 5 seconds
 
             // Save running trip state
             setRunningTrips(prev => ({
                 ...prev,
-                [trip.TripID]: { intervalId, currentStopIndex: 0, stops }
+                [trip.TripID]: { intervalId, currentStopIndex: 0, stops, busId: trip.BusID }
             }));
 
             alert(`Bắt đầu chuyến ${trip.RouteName}!`);

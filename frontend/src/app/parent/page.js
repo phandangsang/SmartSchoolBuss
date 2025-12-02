@@ -150,7 +150,7 @@ export default function ParentPage() {
 
                         {/* Trạng thái xe hiện tại */}
                         <Row className="mb-4">
-                            <Col lg={10}>
+                            <Col lg={12}>
                                 <Card className="bus-tracking-card shadow-sm">
                                     <Card.Body>
                                         <div className="d-flex justify-content-between align-items-start mb-3">
@@ -161,7 +161,7 @@ export default function ParentPage() {
                                             </div>
                                         </div>
 
-                                        {/* Google Maps */}
+                                        {/* Bus Map (Leaflet + OpenStreetMap) */}
                                         <BusMap
                                             busId={busInfo.busNumber ? busInfo.busNumber.replace('Xe ', '') : null}
                                             busInfo={busInfo}
