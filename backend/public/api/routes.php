@@ -49,31 +49,62 @@ try {
             $endPointName = $input['EndPointName'] ?? null;
             $endLatitude = $input['EndLatitude'] ?? null;
             $endLongitude = $input['EndLongitude'] ?? null;
+            $stops = $input['stops'] ?? []; // Array of stops
             
             if (!$routeName) {
                 echo json_encode(['success' => false, 'message' => 'Thiếu tên tuyến']);
                 exit;
             }
             
-            $stmt = $db->prepare("INSERT INTO routes (RouteName, Description, 
-                StartPointName, StartLatitude, StartLongitude,
-                EndPointName, EndLatitude, EndLongitude) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-            $stmt->execute([
-                $routeName,
-                $description,
-                $startPointName,
-                $startLatitude,
-                $startLongitude,
-                $endPointName,
-                $endLatitude,
-                $endLongitude
-            ]);
-            echo json_encode([
-                'success' => true,
-                'message' => 'Thêm tuyến đường thành công',
-                'id' => $db->lastInsertId()
-            ]);
+            try {
+                $db->beginTransaction();
+
+                $stmt = $db->prepare("INSERT INTO routes (RouteName, Description, 
+                    StartPointName, StartLatitude, StartLongitude,
+                    EndPointName, EndLatitude, EndLongitude) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+                $stmt->execute([
+                    $routeName,
+                    $description,
+                    $startPointName,
+                    $startLatitude,
+                    $startLongitude,
+                    $endPointName,
+                    $endLatitude,
+                    $endLongitude
+                ]);
+                
+                $routeId = $db->lastInsertId();
+
+                // Insert stops if provided
+                if (!empty($stops)) {
+                    $stopStmt = $db->prepare("INSERT INTO routestops (RouteID, StopName, Latitude, Longitude, StopOrder, ExpectedTime) 
+                        VALUES (?, ?, ?, ?, ?, ?)");
+                    
+                    foreach ($stops as $index => $stop) {
+                        $stopStmt->execute([
+                            $routeId,
+                            $stop['StopName'],
+                            $stop['Latitude'],
+                            $stop['Longitude'],
+                            $index + 1, // StopOrder based on array index
+                            $stop['ExpectedTime'] ?? null
+                        ]);
+                    }
+                }
+
+                $db->commit();
+
+                echo json_encode([
+                    'success' => true,
+                    'message' => 'Thêm tuyến đường và điểm dừng thành công',
+                    'id' => $routeId
+                ]);
+            } catch (Exception $e) {
+                $db->rollBack();
+                http_response_code(500);
+                echo json_encode(['success' => false, 'message' => 'Lỗi khi lưu tuyến đường: ' . $e->getMessage()]);
+            }
             break;
 
         case 'PUT':
@@ -112,9 +143,50 @@ try {
 
         case 'DELETE':
             $id = $_GET['id'] ?? $input['id'];
-            $stmt = $db->prepare("DELETE FROM routes WHERE RouteID=?");
-            $stmt->execute([$id]);
-            echo json_encode(['success' => true, 'message' => 'Xóa thành công']);
+            
+            try {
+                $db->beginTransaction();
+
+                // 1. Update students: Set RouteID, PickupStopID, DropoffStopID to NULL
+                // Handle PickupStopID referencing stops of this route
+                $stmt = $db->prepare("UPDATE students SET PickupStopID = NULL WHERE PickupStopID IN (SELECT StopID FROM routestops WHERE RouteID = ?)");
+                $stmt->execute([$id]);
+
+                // Handle DropoffStopID referencing stops of this route
+                $stmt = $db->prepare("UPDATE students SET DropoffStopID = NULL WHERE DropoffStopID IN (SELECT StopID FROM routestops WHERE RouteID = ?)");
+                $stmt->execute([$id]);
+
+                // Handle RouteID
+                $stmt = $db->prepare("UPDATE students SET RouteID = NULL WHERE RouteID = ?");
+                $stmt->execute([$id]);
+
+                // 1.5 Delete bus locations associated with trips of this route
+                $stmt = $db->prepare("DELETE FROM buslocations WHERE TripID IN (SELECT TripID FROM trips WHERE AssignmentID IN (SELECT AssignmentID FROM routeassignments WHERE RouteID = ?))");
+                $stmt->execute([$id]);
+
+                // 2. Delete trips associated with assignments of this route
+                $stmt = $db->prepare("DELETE FROM trips WHERE AssignmentID IN (SELECT AssignmentID FROM routeassignments WHERE RouteID = ?)");
+                $stmt->execute([$id]);
+
+                // 3. Delete route assignments
+                $stmt = $db->prepare("DELETE FROM routeassignments WHERE RouteID = ?");
+                $stmt->execute([$id]);
+
+                // 4. Delete route stops
+                $stmt = $db->prepare("DELETE FROM routestops WHERE RouteID = ?");
+                $stmt->execute([$id]);
+
+                // 5. Delete the route itself
+                $stmt = $db->prepare("DELETE FROM routes WHERE RouteID=?");
+                $stmt->execute([$id]);
+
+                $db->commit();
+                echo json_encode(['success' => true, 'message' => 'Xóa thành công']);
+            } catch (Exception $e) {
+                $db->rollBack();
+                http_response_code(500);
+                echo json_encode(['success' => false, 'message' => 'Lỗi khi xóa tuyến đường: ' . $e->getMessage()]);
+            }
             break;
     }
 } catch (PDOException $e) {

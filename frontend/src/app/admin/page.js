@@ -22,6 +22,8 @@ export default function AdminPage() {
     const [assignments, setAssignments] = useState([]);
     const [routeStops, setRouteStops] = useState([]);
     const [selectedRouteId, setSelectedRouteId] = useState(null);
+    const [allStops, setAllStops] = useState([]);
+    const [uniqueStops, setUniqueStops] = useState([]);
 
     // Sample data for schedules
     const [schedules, setSchedules] = useState([]);
@@ -51,7 +53,19 @@ export default function AdminPage() {
     const [parentForm, setParentForm] = useState({ ParentID: '', FullName: '', Phone: '', Email: '', Address: '', UserID: '', Username: '', Password: '' });
     const [driverForm, setDriverForm] = useState({ DriverID: '', FullName: '', Phone: '', LicenseNumber: 'B2', Status: 'active', UserID: '', Username: '', Password: '' });
     const [busForm, setBusForm] = useState({ BusID: '', PlateNumber: '', Capacity: '', Status: 'running' });
-    const [routeForm, setRouteForm] = useState({ RouteID: '', RouteName: '', Description: '', StartPointName: '', StartLatitude: '', StartLongitude: '', EndPointName: '', EndLatitude: '', EndLongitude: '' });
+    const [routeForm, setRouteForm] = useState({
+        RouteID: '',
+        RouteName: '',
+        Description: '',
+        Status: 'scheduled',
+        StartPointName: '',
+        StartLatitude: '',
+        StartLongitude: '',
+        EndPointName: '',
+        EndLatitude: '',
+        EndLongitude: '',
+        stops: []
+    });
     const [scheduleForm, setScheduleForm] = useState({
         TripID: '',
         AssignmentID: '',
@@ -83,8 +97,10 @@ export default function AdminPage() {
             loadParents();
             loadDrivers();
             loadBuses();
+            loadBuses();
             loadRoutesAndAssignments();
             loadSchedules();
+            loadAllStopsForSelection();
         } else {
             window.location.href = '/login';
         }
@@ -142,6 +158,27 @@ export default function AdminPage() {
             }
         } catch (error) {
             console.error('Failed to load route stops:', error);
+        }
+    };
+
+    const loadAllStopsForSelection = async () => {
+        try {
+            const response = await routeStopsAPI.getAllStops();
+            if (response.success) {
+                setAllStops(response.data);
+                // Filter unique stops by name
+                const unique = [];
+                const map = new Map();
+                for (const stop of response.data) {
+                    if (!map.has(stop.StopName)) {
+                        map.set(stop.StopName, true);
+                        unique.push(stop);
+                    }
+                }
+                setUniqueStops(unique);
+            }
+        } catch (error) {
+            console.error('Failed to load all stops:', error);
         }
     };
 
@@ -561,24 +598,39 @@ export default function AdminPage() {
         if (routeForm.RouteName) {
             try {
                 setLoading(true);
+                const routeData = {
+                    RouteName: routeForm.RouteName,
+                    Description: routeForm.Description,
+                    Status: routeForm.Status,
+                    StartPointName: routeForm.StartPointName,
+                    StartLatitude: routeForm.StartLatitude,
+                    StartLongitude: routeForm.StartLongitude,
+                    EndPointName: routeForm.EndPointName,
+                    EndLatitude: routeForm.EndLatitude,
+                    EndLongitude: routeForm.EndLongitude,
+                    stops: routeForm.stops
+                };
+
                 if (editingRoute) {
-                    const updateData = {
-                        RouteName: routeForm.RouteName,
-                        Description: routeForm.Description,
-                        Status: routeForm.Status
-                    };
-                    await adminAPI.updateRoute(editingRoute.RouteID, updateData);
+                    await adminAPI.updateRoute(editingRoute.RouteID, routeData);
                     setEditingRoute(null);
                 } else {
-                    const newRouteData = {
-                        RouteName: routeForm.RouteName,
-                        Description: routeForm.Description,
-                        Status: routeForm.Status
-                    };
-                    await adminAPI.createRoute(newRouteData);
+                    await adminAPI.createRoute(routeData);
                 }
                 await loadRoutes();
-                setRouteForm({ RouteID: '', RouteName: '', Description: '', Status: 'scheduled' });
+                setRouteForm({
+                    RouteID: '',
+                    RouteName: '',
+                    Description: '',
+                    Status: 'scheduled',
+                    StartPointName: '',
+                    StartLatitude: '',
+                    StartLongitude: '',
+                    EndPointName: '',
+                    EndLatitude: '',
+                    EndLongitude: '',
+                    stops: []
+                });
                 setShowRouteModal(false);
             } catch (error) {
                 console.error('Failed to save route:', error);
@@ -1533,20 +1585,29 @@ export default function AdminPage() {
             </Modal>
 
             {/* Modal Thêm Tuyến đường */}
-            <Modal show={showRouteModal} onHide={() => { setShowRouteModal(false); setEditingRoute(null); setRouteForm({ RouteID: '', RouteName: '', Description: '' }); }}>
+            {/* Modal Thêm Tuyến đường */}
+            <Modal show={showRouteModal} onHide={() => {
+                setShowRouteModal(false);
+                setEditingRoute(null);
+                setRouteForm({
+                    RouteID: '',
+                    RouteName: '',
+                    Description: '',
+                    Status: 'scheduled',
+                    StartPointName: '',
+                    StartLatitude: '',
+                    StartLongitude: '',
+                    EndPointName: '',
+                    EndLatitude: '',
+                    EndLongitude: '',
+                    stops: []
+                });
+            }}>
                 <Modal.Header closeButton>
                     <Modal.Title>{editingRoute ? 'Sửa thông tin tuyến đường' : 'Thêm tuyến đường mới'}</Modal.Title>
                 </Modal.Header>
                 <Modal.Body>
                     <Form>
-                        <Form.Group className="mb-3">
-                            <Form.Label>Mã tuyến </Form.Label>
-                            <Form.Control
-                                type="text"
-                                value={routeForm.RouteID}
-                                onChange={(e) => setRouteForm({ ...routeForm, RouteID: e.target.value })}
-                            />
-                        </Form.Group>
                         <Form.Group className="mb-3">
                             <Form.Label>Tên tuyến </Form.Label>
                             <Form.Control
@@ -1562,6 +1623,99 @@ export default function AdminPage() {
                                 value={routeForm.Description}
                                 onChange={(e) => setRouteForm({ ...routeForm, Description: e.target.value })}
                             />
+                        </Form.Group>
+
+                        <Form.Group className="mb-3">
+                            <Form.Label>Điểm bắt đầu</Form.Label>
+                            <Form.Select
+                                value={routeForm.StartPointName || ''}
+                                onChange={(e) => {
+                                    const selectedStop = uniqueStops.find(s => s.StopName === e.target.value);
+                                    if (selectedStop) {
+                                        setRouteForm({
+                                            ...routeForm,
+                                            StartPointName: selectedStop.StopName,
+                                            StartLatitude: selectedStop.Latitude,
+                                            StartLongitude: selectedStop.Longitude
+                                        });
+                                    }
+                                }}
+                            >
+                                <option value="">-- Chọn điểm bắt đầu --</option>
+                                {uniqueStops.map((stop, index) => (
+                                    <option key={`start-${index}`} value={stop.StopName}>{stop.StopName}</option>
+                                ))}
+                            </Form.Select>
+                        </Form.Group>
+
+                        <Form.Group className="mb-3">
+                            <Form.Label>Điểm kết thúc</Form.Label>
+                            <Form.Select
+                                value={routeForm.EndPointName || ''}
+                                onChange={(e) => {
+                                    const selectedStop = uniqueStops.find(s => s.StopName === e.target.value);
+                                    if (selectedStop) {
+                                        setRouteForm({
+                                            ...routeForm,
+                                            EndPointName: selectedStop.StopName,
+                                            EndLatitude: selectedStop.Latitude,
+                                            EndLongitude: selectedStop.Longitude
+                                        });
+                                    }
+                                }}
+                            >
+                                <option value="">-- Chọn điểm kết thúc --</option>
+                                {uniqueStops.map((stop, index) => (
+                                    <option key={`end-${index}`} value={stop.StopName}>{stop.StopName}</option>
+                                ))}
+                            </Form.Select>
+                        </Form.Group>
+
+                        <Form.Group className="mb-3">
+                            <Form.Label>Các điểm dừng trung gian</Form.Label>
+                            <div className="mb-2">
+                                {routeForm.stops && routeForm.stops.map((stop, index) => (
+                                    <div key={index} className="d-flex align-items-center mb-2">
+                                        <span className="me-2">{index + 1}. {stop.StopName}</span>
+                                        <Button
+                                            variant="outline-danger"
+                                            size="sm"
+                                            onClick={() => {
+                                                const newStops = [...routeForm.stops];
+                                                newStops.splice(index, 1);
+                                                setRouteForm({ ...routeForm, stops: newStops });
+                                            }}
+                                        >
+                                            Xóa
+                                        </Button>
+                                    </div>
+                                ))}
+                            </div>
+                            <div className="d-flex">
+                                <Form.Select
+                                    id="add-stop-select"
+                                    onChange={(e) => {
+                                        const selectedStop = uniqueStops.find(s => s.StopName === e.target.value);
+                                        if (selectedStop) {
+                                            const newStops = [...(routeForm.stops || [])];
+                                            newStops.push({
+                                                StopName: selectedStop.StopName,
+                                                Latitude: selectedStop.Latitude,
+                                                Longitude: selectedStop.Longitude,
+                                                ExpectedTime: ''
+                                            });
+                                            setRouteForm({ ...routeForm, stops: newStops });
+                                            // Reset select
+                                            e.target.value = "";
+                                        }
+                                    }}
+                                >
+                                    <option value="">-- Thêm điểm dừng --</option>
+                                    {uniqueStops.map((stop, index) => (
+                                        <option key={`stop-${index}`} value={stop.StopName}>{stop.StopName}</option>
+                                    ))}
+                                </Form.Select>
+                            </div>
                         </Form.Group>
                     </Form>
                 </Modal.Body>

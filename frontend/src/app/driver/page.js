@@ -377,7 +377,7 @@ export default function DriverPage() {
                     point.lng
                 );
                 currentPointIndex++;
-            }, 5000); // Every 5 seconds
+            }, 1000); // Every 1 second for faster simulation
 
             // Save running trip state
             setRunningTrips(prev => ({
