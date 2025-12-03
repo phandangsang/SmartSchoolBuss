@@ -378,7 +378,7 @@ export default function BusMap({ busId, busInfo, studentPickupLocation, routeSto
 
             <div className="mt-3">
                 {busLocation ? (
-                    <div className="alert alert-success">
+                    <div className="alert alert-success" style={{ width: '200%' }}>
                         <strong>✓ Đang theo dõi xe buýt</strong>
                         {lastUpdate && (
                             <span className="ms-2">
