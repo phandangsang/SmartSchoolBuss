@@ -240,25 +240,36 @@ export default function DriverPage() {
         const PROXIMITY_THRESHOLD = 50; // 50 mét
 
         try {
-            // console.log(`🔍 Checking students near (${currentLat}, ${currentLng})`);
+            console.log(`🔍 Checking students near (${currentLat}, ${currentLng})`);
 
             // Lấy danh sách học sinh
             const res = await driverAPI.getTripStudents(tripId);
             if (!res.success || !res.data) {
+                console.log('❌ Failed to get students:', res);
                 return;
             }
 
             const students = res.data;
+            console.log(`📋 Total students on route: ${students.length}`);
+            console.log('Student data:', students);
 
             // Kiểm tra từng học sinh
             for (const student of students) {
+                console.log(`\n👤 Checking: ${student.FullName}`);
+                console.log(`   Status: ${student.Status}`);
+                console.log(`   PickupPoint: ${student.PickupPoint}`);
+                console.log(`   PickupLatitude: ${student.PickupLatitude}`);
+                console.log(`   PickupLongitude: ${student.PickupLongitude}`);
+
                 // Chỉ cập nhật nếu chưa đón (pending hoặc waiting)
                 if (student.Status !== 'pending' && student.Status !== 'waiting') {
+                    console.log(`   ⏭️ Skipped: Status is ${student.Status} (not pending/waiting)`);
                     continue;
                 }
 
                 // Kiểm tra có tọa độ điểm đón không
                 if (!student.PickupLatitude || !student.PickupLongitude) {
+                    console.log(`   ⏭️ Skipped: No pickup coordinates`);
                     continue;
                 }
 
@@ -267,11 +278,15 @@ export default function DriverPage() {
                     parseFloat(student.PickupLatitude),
                     parseFloat(student.PickupLongitude)
                 );
+                console.log(`   📏 Distance to pickup point: ${distance.toFixed(1)}m (threshold: ${PROXIMITY_THRESHOLD}m)`);
 
                 // Nếu gần (< 50m), tự động đánh dấu đã đón
                 if (distance < PROXIMITY_THRESHOLD) {
+                    console.log(`   ✅ AUTO-PICKING ${student.FullName}!`);
                     await driverAPI.reportStudent(tripId, student.StudentID, 'picked');
                     console.log(`   ✅ Auto-picked: ${student.FullName} (${distance.toFixed(1)}m)`);
+                } else {
+                    console.log(`   ⏭️ Too far: ${distance.toFixed(1)}m > ${PROXIMITY_THRESHOLD}m`);
                 }
             }
         } catch (error) {
