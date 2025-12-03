@@ -369,7 +369,7 @@ export default function BusMap({ busId, busInfo, studentPickupLocation, routeSto
             <div
                 ref={mapRef}
                 style={{
-                    width: '100%',
+                    width: '200%',
                     height: '700px',
                     borderRadius: '8px',
                     backgroundColor: '#f5f5f5'
@@ -387,18 +387,18 @@ export default function BusMap({ busId, busInfo, studentPickupLocation, routeSto
                         )}
                     </div>
                 ) : (
-                    <div className="alert alert-warning">
+                    <div className="alert alert-warning" style={{ width: '200%' }}>
                         <strong>⚠ Chưa có dữ liệu vị trí</strong>
                         <br />
                         <small>Xe buýt chưa bật GPS hoặc chưa có chuyến nào gần đây</small>
                     </div>
                 )}
-                <div className="alert alert-info mt-2">
+                {/* <div className="alert alert-info mt-2">
                     <small>
                         <strong>📍 Chú thích:</strong> Đường màu xanh = Tuyến đường theo đường phố thực tế (qua tất cả điểm dừng) |
                         Đường đứt nét đỏ = Đường dự phòng
                     </small>
-                </div>
+                </div> */}
             </div>
         </div>
     );
