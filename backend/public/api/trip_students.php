@@ -41,7 +41,7 @@ try {
     
     $routeId = $route['RouteID'];
     
-    // 2. Get Students assigned to this Route với tọa độ điểm đón
+    // 2. Get Students assigned to this Route với tọa độ điểm đón và trả
     $stmt = $db->prepare('
         SELECT 
             s.StudentID, 
@@ -50,10 +50,15 @@ try {
             p.Address as PickupPoint,
             pickup.Latitude as PickupLatitude,
             pickup.Longitude as PickupLongitude,
+            pickup.StopName as PickupStopName,
+            dropoff.Latitude as DropoffLatitude,
+            dropoff.Longitude as DropoffLongitude,
+            dropoff.StopName as DropoffStopName,
             COALESCE(ts.Status, "waiting") as Status
         FROM students s
         LEFT JOIN parents p ON s.ParentID = p.ParentID
         LEFT JOIN routestops pickup ON s.PickupStopID = pickup.StopID
+        LEFT JOIN routestops dropoff ON s.DropoffStopID = dropoff.StopID
         LEFT JOIN tripstudents ts ON s.StudentID = ts.StudentID AND ts.TripID = ?
         WHERE s.RouteID = ?
     ');

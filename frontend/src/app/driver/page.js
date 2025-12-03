@@ -257,36 +257,66 @@ export default function DriverPage() {
             for (const student of students) {
                 console.log(`\n👤 Checking: ${student.FullName}`);
                 console.log(`   Status: ${student.Status}`);
-                console.log(`   PickupPoint: ${student.PickupPoint}`);
+                console.log(`   PickupPoint: ${student.PickupPoint} (${student.PickupStopName})`);
                 console.log(`   PickupLatitude: ${student.PickupLatitude}`);
                 console.log(`   PickupLongitude: ${student.PickupLongitude}`);
+                console.log(`   DropoffPoint: ${student.DropoffStopName}`);
+                console.log(`   DropoffLatitude: ${student.DropoffLatitude}`);
+                console.log(`   DropoffLongitude: ${student.DropoffLongitude}`);
 
+                // === TỰ ĐỘNG ĐÓN HỌC SINH ===
                 // Chỉ cập nhật nếu chưa đón (pending hoặc waiting)
-                if (student.Status !== 'pending' && student.Status !== 'waiting') {
-                    console.log(`   ⏭️ Skipped: Status is ${student.Status} (not pending/waiting)`);
-                    continue;
+                if (student.Status === 'pending' || student.Status === 'waiting') {
+                    // Kiểm tra có tọa độ điểm đón không
+                    if (!student.PickupLatitude || !student.PickupLongitude) {
+                        console.log(`   ⏭️ Skipped pickup: No pickup coordinates`);
+                    } else {
+                        const distance = calculateDistance(
+                            currentLat, currentLng,
+                            parseFloat(student.PickupLatitude),
+                            parseFloat(student.PickupLongitude)
+                        );
+                        console.log(`   📏 Distance to pickup point: ${distance.toFixed(1)}m (threshold: ${PROXIMITY_THRESHOLD}m)`);
+
+                        // Nếu gần (< 50m), tự động đánh dấu đã đón
+                        if (distance < PROXIMITY_THRESHOLD) {
+                            console.log(`   ✅ AUTO-PICKING ${student.FullName}!`);
+                            await driverAPI.reportStudent(tripId, student.StudentID, 'picked');
+                            console.log(`   ✅ Auto-picked: ${student.FullName} (${distance.toFixed(1)}m)`);
+                        } else {
+                            console.log(`   ⏭️ Too far from pickup: ${distance.toFixed(1)}m > ${PROXIMITY_THRESHOLD}m`);
+                        }
+                    }
                 }
 
-                // Kiểm tra có tọa độ điểm đón không
-                if (!student.PickupLatitude || !student.PickupLongitude) {
-                    console.log(`   ⏭️ Skipped: No pickup coordinates`);
-                    continue;
+                // === TỰ ĐỘNG TRẢ HỌC SINH ===
+                // Nếu đã đón rồi (picked), kiểm tra xem đến điểm trả chưa
+                else if (student.Status === 'picked') {
+                    // Kiểm tra có tọa độ điểm trả không
+                    if (!student.DropoffLatitude || !student.DropoffLongitude) {
+                        console.log(`   ⏭️ Skipped dropoff: No dropoff coordinates`);
+                    } else {
+                        const distance = calculateDistance(
+                            currentLat, currentLng,
+                            parseFloat(student.DropoffLatitude),
+                            parseFloat(student.DropoffLongitude)
+                        );
+                        console.log(`   📏 Distance to dropoff point: ${distance.toFixed(1)}m (threshold: ${PROXIMITY_THRESHOLD}m)`);
+
+                        // Nếu gần (< 50m), tự động đánh dấu đã trả
+                        if (distance < PROXIMITY_THRESHOLD) {
+                            console.log(`   🎯 AUTO-DROPPING ${student.FullName}!`);
+                            await driverAPI.reportStudent(tripId, student.StudentID, 'dropped');
+                            console.log(`   ✅ Auto-dropped: ${student.FullName} (${distance.toFixed(1)}m)`);
+                        } else {
+                            console.log(`   ⏭️ Too far from dropoff: ${distance.toFixed(1)}m > ${PROXIMITY_THRESHOLD}m`);
+                        }
+                    }
                 }
 
-                const distance = calculateDistance(
-                    currentLat, currentLng,
-                    parseFloat(student.PickupLatitude),
-                    parseFloat(student.PickupLongitude)
-                );
-                console.log(`   📏 Distance to pickup point: ${distance.toFixed(1)}m (threshold: ${PROXIMITY_THRESHOLD}m)`);
-
-                // Nếu gần (< 50m), tự động đánh dấu đã đón
-                if (distance < PROXIMITY_THRESHOLD) {
-                    console.log(`   ✅ AUTO-PICKING ${student.FullName}!`);
-                    await driverAPI.reportStudent(tripId, student.StudentID, 'picked');
-                    console.log(`   ✅ Auto-picked: ${student.FullName} (${distance.toFixed(1)}m)`);
-                } else {
-                    console.log(`   ⏭️ Too far: ${distance.toFixed(1)}m > ${PROXIMITY_THRESHOLD}m`);
+                // Bỏ qua nếu đã trả (dropped) hoặc vắng (absent)
+                else {
+                    console.log(`   ⏭️ Skipped: Status is ${student.Status} (already completed)`);
                 }
             }
         } catch (error) {
