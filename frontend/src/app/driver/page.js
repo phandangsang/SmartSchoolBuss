@@ -340,6 +340,17 @@ export default function DriverPage() {
         }
 
         try {
+            // Reset tất cả học sinh về trạng thái "waiting" khi bắt đầu chuyến
+            console.log('🔄 Resetting all students to waiting status...');
+            const studentsRes = await driverAPI.getTripStudents(trip.TripID);
+            if (studentsRes.success && studentsRes.data) {
+                for (const student of studentsRes.data) {
+                    // Reset mỗi học sinh về waiting
+                    await driverAPI.reportStudent(trip.TripID, student.StudentID, 'waiting');
+                }
+                console.log(`✅ Reset ${studentsRes.data.length} students to waiting status`);
+            }
+
             // Get route stops
             const response = await fetch(`http://localhost/SmartSchoolBus-main/backend/public/api/route_stops.php?route_id=${trip.RouteID}`);
             const data = await response.json();
