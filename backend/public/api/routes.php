@@ -164,6 +164,10 @@ try {
                 $stmt = $db->prepare("DELETE FROM buslocations WHERE TripID IN (SELECT TripID FROM trips WHERE AssignmentID IN (SELECT AssignmentID FROM routeassignments WHERE RouteID = ?))");
                 $stmt->execute([$id]);
 
+                // 1.6 Delete tripstudents associated with trips of this route
+                $stmt = $db->prepare("DELETE FROM tripstudents WHERE TripID IN (SELECT TripID FROM trips WHERE AssignmentID IN (SELECT AssignmentID FROM routeassignments WHERE RouteID = ?))");
+                $stmt->execute([$id]);
+
                 // 2. Delete trips associated with assignments of this route
                 $stmt = $db->prepare("DELETE FROM trips WHERE AssignmentID IN (SELECT AssignmentID FROM routeassignments WHERE RouteID = ?)");
                 $stmt->execute([$id]);
