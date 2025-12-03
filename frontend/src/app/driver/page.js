@@ -336,8 +336,8 @@ export default function DriverPage() {
                 }
             }
 
-            // Resample path to ~50m intervals (approx 36km/h with 5s updates)
-            const simulationPoints = resamplePath(fullPath, 50);
+            // Resample path to ~20m intervals for smoother animation
+            const simulationPoints = resamplePath(fullPath, 20);
             console.log(`✅ Generated ${simulationPoints.length} simulation points from ${fullPath.length} raw points.`);
 
             if (simulationPoints.length === 0) {

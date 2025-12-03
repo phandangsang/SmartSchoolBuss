@@ -17,7 +17,7 @@ export default function BusMap({ busId, busInfo, studentPickupLocation, routeSto
     const animationRef = useRef(null);
     const lastPositionRef = useRef(null);
     const startTimeRef = useRef(null);
-    const ANIMATION_DURATION = 5000;
+    const ANIMATION_DURATION = 1000; // Match simulation interval for smooth movement
 
     useEffect(() => {
         if (typeof window === 'undefined') return;
@@ -117,16 +117,16 @@ export default function BusMap({ busId, busInfo, studentPickupLocation, routeSto
     useEffect(() => {
         if (!busLocation || !lastPositionRef.current) return;
 
-        const dist = Math.sqrt(
-            Math.pow(busLocation.lat - lastPositionRef.current.lat, 2) +
-            Math.pow(busLocation.lng - lastPositionRef.current.lng, 2)
-        );
-
-        if (dist > 0.05) { // Increased threshold to avoid snapping on small jumps, but snap on huge ones
-            setAnimatedPosition(busLocation);
-            lastPositionRef.current = busLocation;
-            return;
-        }
+        // Remove large jump snap - let animation handle all movements smoothly
+        // const dist = Math.sqrt(
+        //     Math.pow(busLocation.lat - lastPositionRef.current.lat, 2) +
+        //     Math.pow(busLocation.lng - lastPositionRef.current.lng, 2)
+        // );
+        // if (dist > 0.05) {
+        //     setAnimatedPosition(busLocation);
+        //     lastPositionRef.current = busLocation;
+        //     return;
+        // }
 
         const startPos = lastPositionRef.current;
         const endPos = busLocation;
@@ -136,7 +136,8 @@ export default function BusMap({ busId, busInfo, studentPickupLocation, routeSto
             const elapsed = currentTime - startTimeRef.current;
             const progress = Math.min(elapsed / ANIMATION_DURATION, 1);
             // Linear easing for smooth continuous movement
-            const easeProgress = progress;
+            // Ease-out for smoother deceleration
+            const easeProgress = 1 - Math.pow(1 - progress, 3);
 
             const newLat = startPos.lat + (endPos.lat - startPos.lat) * easeProgress;
             const newLng = startPos.lng + (endPos.lng - startPos.lng) * easeProgress;
